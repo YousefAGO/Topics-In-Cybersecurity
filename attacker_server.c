@@ -194,7 +194,7 @@ int send_txid(unsigned short txid){
     // Step 2: Configure the server address
     memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(CLIENT_UDP_PORT);
+    server_addr.sin_port = htons(SERVER_CLIENT_PORT);
     server_addr.sin_addr.s_addr = INADDR_ANY;
 
     // Step 3: Bind the socket to the server address
@@ -204,7 +204,7 @@ int send_txid(unsigned short txid){
         exit(EXIT_FAILURE);
     }
 
-    printf("UDP server listening on port %d...\n", CLIENT_UDP_PORT);
+    printf("UDP server listening on port %d...\n", SERVER_CLIENT_PORT);
 
     // while (1) {
         // // Step 4: Receive a request from the client
