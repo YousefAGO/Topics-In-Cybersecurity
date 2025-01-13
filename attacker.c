@@ -28,7 +28,7 @@ int fetch_txid_from_server(unsigned short *txid) {
     // Step 2: Configure the server address
     memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(SERVER_PORT);
+    server_addr.sin_port = htons(INFO_SERVER_PORT);
     inet_pton(AF_INET, DNS_SERVER_IP, &server_addr.sin_addr);
 
     // // Step 3: Send a request to the server
