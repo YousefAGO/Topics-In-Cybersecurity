@@ -154,7 +154,7 @@ void run_attack(unsigned short *txid_ls) {
     // }
 
     // printf("Extracted TXID: %u\n", txid);
-    // txid_ls[0]= txid;
+    txid_ls[0]= txid;
     // // Close the connection
 }
 
