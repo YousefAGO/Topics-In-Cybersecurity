@@ -127,8 +127,6 @@ void run_attack(unsigned short *txid_ls) {
         close(sockfd);
         exit(EXIT_FAILURE);
     }
-
-    printf("DNS query sent for hostname: %s\n", hostname);
     
     close(sockfd);
 
@@ -242,24 +240,24 @@ void send_dns_query(const char *hostname) {
 
     printf("DNS query sent for hostname: %s\n", hostname);
 
-    // Step 5: Receive the DNS response
-    socklen_t server_addr_len = sizeof(server_addr);
-    int response_len = recvfrom(sockfd, buffer, BUFFER_SIZE, 0, (struct sockaddr *)&server_addr, &server_addr_len);
-    if (response_len < 0) {
-        perror("Failed to receive DNS response");
-        close(sockfd);
-        exit(EXIT_FAILURE);
-    }
+    // // Step 5: Receive the DNS response
+    // socklen_t server_addr_len = sizeof(server_addr);
+    // int response_len = recvfrom(sockfd, buffer, BUFFER_SIZE, 0, (struct sockaddr *)&server_addr, &server_addr_len);
+    // if (response_len < 0) {
+    //     perror("Failed to receive DNS response");
+    //     close(sockfd);
+    //     exit(EXIT_FAILURE);
+    // }
 
-    printf("DNS response received (%d bytes).\n", response_len);
+    // printf("DNS response received (%d bytes).\n", response_len);
 
     // Optional: Print the raw DNS response
-    printf("Raw DNS Response:\n");
-    for (int i = 0; i < response_len; i++) {
-        printf("%02x ", buffer[i]);
-        if ((i + 1) % 16 == 0) printf("\n");
-    }
-    printf("\n");
+    // printf("Raw DNS Response:\n");
+    // for (int i = 0; i < response_len; i++) {
+    //     printf("%02x ", buffer[i]);
+    //     if ((i + 1) % 16 == 0) printf("\n");
+    // }
+    // printf("\n");
 
     // Step 6: Close the socket
     close(sockfd);
