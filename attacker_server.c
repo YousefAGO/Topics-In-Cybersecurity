@@ -21,7 +21,7 @@
 #include <string.h>
 
 
-int send_txid(int client_sock, unsigned short txid);
+int send_txid(unsigned short txid);
 
 
 int create_dns_response(int txid, const char* query_name) {
