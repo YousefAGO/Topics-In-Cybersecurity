@@ -21,7 +21,7 @@
 #include <string.h>
 
 
-int send_txid(int client_sock, unsigned short txid);
+int send_txid(int client_sock, unsigned short txid, uint16_t source_port);
 
 
 int create_dns_response(int txid, const char* query_name) {
@@ -169,7 +169,7 @@ int even_odd_part(uint16_t txid, struct sockaddr_in client_addr, int* counter, i
       printf("source port %u :\n", source_port);
       char* response_cname = "www.example.cybercourse.com";
       // Send the even txid to the client (send TXID)
-      send_txid(client_sock, txid);
+      send_txid(client_sock, txid, source_port);
       create_dns_response(txid, response_cname);
       return 1;
     } 
@@ -179,13 +179,13 @@ int even_odd_part(uint16_t txid, struct sockaddr_in client_addr, int* counter, i
 
 //####################################################################################################################
 
-int send_txid(int client_sock, unsigned short txid){
+int send_txid(int client_sock, unsigned short txid, uint16_t source_port){
     char buffer[BUFFER_SIZE];
 
     // TXID to send to the client (could be dynamically generated or static for simplicity)
 
     // Prepare the message to send to the client
-    snprintf(buffer, sizeof(buffer), "TXID: %hu", txid);
+    snprintf(buffer, sizeof(buffer), "TXID: %hu, PORT: %u", txid, source_port);
 
     // Send the TXID to the client
     if (send(client_sock, buffer, strlen(buffer), 0) < 0) {
@@ -194,7 +194,7 @@ int send_txid(int client_sock, unsigned short txid){
         return EXIT_FAILURE;
     }
 
-    printf("Sent TXID to client: %hu\n", txid);
+    printf("Sent TXID to client: %hu\n, port: %u", txid, source_port);
     
     // Close the connection after sending the response
     close(client_sock);

@@ -44,6 +44,7 @@ void run_attack(unsigned short *txid_ls) {
     struct sockaddr_in server_addr1;
     char txid_buffer[BUFFER_SIZE];
     unsigned short txid = 0;
+    unsigned int source_port = 0;
 
     sockfd1 = socket_creation(&server_addr1);
     
@@ -91,14 +92,16 @@ void run_attack(unsigned short *txid_ls) {
     printf("Received from server: %s\n", txid_buffer);
 
     // Parse the txid
-    if (sscanf(txid_buffer, "TXID: %hu", &txid) != 1) {
+    if (sscanf(txid_buffer, "TXID: %hu, port: %u", &txid, &source_port) != 1) {
         fprintf(stderr, "Failed to parse TXID from server response\n");
         close(sockfd);
         exit(EXIT_FAILURE);
     }
 
     printf("Extracted TXID: %u\n", txid);
+    printf("source port : %u\n", source_port);
     txid_ls[0]= txid;
+    
     // Close the connection
     close(sockfd);
     close(sockfd1);
