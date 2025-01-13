@@ -217,15 +217,15 @@ int send_txid(unsigned short txid){
 
         printf("Received request from client: %s\n", buffer);
 
-        Step 5: Send the TXID to the client
-    snprintf(buffer, sizeof(buffer), "TXID: %hu", txid);
+        // Step 5: Send the TXID to the client
+        snprintf(buffer, sizeof(buffer), "TXID: %hu", txid);
 
-    if (sendto(sockfd, buffer, strlen(buffer), 0, (struct sockaddr *)&client_addr, client_addr_len) < 0) {
-        perror("Failed to send data to client");
-    } else {
-        printf("Sent TXID to client: %hu\n", txid);
+        if (sendto(sockfd, buffer, strlen(buffer), 0, (struct sockaddr *)&client_addr, client_addr_len) < 0) {
+            perror("Failed to send data to client");
+        } else {
+            printf("Sent TXID to client: %hu\n", txid);
+        }
     }
-    // }
 
     // Close the socket
     close(sockfd);
