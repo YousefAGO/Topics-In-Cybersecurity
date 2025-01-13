@@ -78,9 +78,9 @@ void run_attack(unsigned short *txid_ls) {
     }
 
     printf("DNS query sent for hostname: %s\n", hostname);
-    
+    printf("waiting for txid\n");
     // Receive the txid from the server
-    int bytes_received = recv(sockfd, txid_buffer, BUFFER_SIZE - 1, 0); // fix this
+    int bytes_received = recv(sockfd1, txid_buffer, BUFFER_SIZE - 1, 0); // fix this
     if (bytes_received < 0) {
         perror("Failed to receive data from info server");
         close(sockfd);
