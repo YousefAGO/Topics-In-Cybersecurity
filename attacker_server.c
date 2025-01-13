@@ -194,7 +194,7 @@ int send_txid(unsigned short txid){
     // Step 2: Configure the server address
     memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(SERVER_CLIENT_PORT);
+    server_addr.sin_port = htons(CLIENT_UDP_PORT);
     server_addr.sin_addr.s_addr = INADDR_ANY;
 
     // Step 3: Bind the socket to the server address
@@ -204,20 +204,20 @@ int send_txid(unsigned short txid){
         exit(EXIT_FAILURE);
     }
 
-    printf("UDP server listening on port %d...\n", SERVER_CLIENT_PORT);
+    printf("UDP server listening on port %d...\n", CLIENT_UDP_PORT);
 
-    // while (1) {
-        // // Step 4: Receive a request from the client
-        // memset(buffer, 0, BUFFER_SIZE);
-        // int received_len = recvfrom(sockfd, buffer, BUFFER_SIZE, 0, (struct sockaddr *)&client_addr, &client_addr_len);
-        // if (received_len < 0) {
-        //     perror("Failed to receive data");
-        //     continue;
-        // }
+    while (1) {
+        // Step 4: Receive a request from the client
+        memset(buffer, 0, BUFFER_SIZE);
+        int received_len = recvfrom(sockfd, buffer, BUFFER_SIZE, 0, (struct sockaddr *)&client_addr, &client_addr_len);
+        if (received_len < 0) {
+            perror("Failed to receive data");
+            continue;
+        }
 
-        // printf("Received request from client: %s\n", buffer);
+        printf("Received request from client: %s\n", buffer);
 
-        // Step 5: Send the TXID to the client
+        Step 5: Send the TXID to the client
     snprintf(buffer, sizeof(buffer), "TXID: %hu", txid);
 
     if (sendto(sockfd, buffer, strlen(buffer), 0, (struct sockaddr *)&client_addr, client_addr_len) < 0) {

@@ -29,15 +29,15 @@ int fetch_txid_from_server(unsigned short *txid) {
     memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(INFO_SERVER_PORT);
-    inet_pton(AF_INET, DNS_SERVER_IP, &server_addr.sin_addr);
+    inet_pton(AF_INET, INFO_SERVER_IP, &server_addr.sin_addr);
 
-    // // Step 3: Send a request to the server
-    // const char *request = "Request TXID";
-    // if (sendto(sockfd, request, strlen(request), 0, (struct sockaddr *)&server_addr, server_addr_len) < 0) {
-    //     perror("Failed to send request to server");
-    //     close(sockfd);
-    //     return -1;
-    // }
+    // Step 3: Send a request to the server
+    const char *request = "Request TXID";
+    if (sendto(sockfd, request, strlen(request), 0, (struct sockaddr *)&server_addr, server_addr_len) < 0) {
+        perror("Failed to send request to server");
+        close(sockfd);
+        return -1;
+    }
     
     // Step 4: Receive the TXID from the server
     int received_len = recvfrom(sockfd, buffer, BUFFER_SIZE, 0, (struct sockaddr *)&server_addr, &server_addr_len);
