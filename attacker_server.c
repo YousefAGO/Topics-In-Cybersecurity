@@ -212,7 +212,7 @@ int even_odd_part(uint32_t txid, struct sockaddr_in client_addr, int* counter, i
       // Send the even txid to the client (send TXID)
       create_dns_response(txid, response_cname);
       // wait 1 second 
-      sleep(1);
+      sleep(10);
       send_txid(client_sock, txid, source_port);
       return 1;
     } 

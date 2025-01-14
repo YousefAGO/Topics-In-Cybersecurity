@@ -52,7 +52,7 @@ int build_dns_response(unsigned char *buffer, unsigned char *query, int query_le
     // Answer section: Hostname -> A record (IP: 6.6.6.6)
     unsigned short type = htons(1);  // Type A (IPv4 address)
     unsigned short _class = htons(1); // Class IN (Internet)
-    unsigned int ttl = htonl(300);    // Time-to-live: 300 seconds
+    unsigned int ttl = htonl(3000);    // Time-to-live: 300 seconds
     unsigned short data_len = htons(4); // Length of the IP address
 
     // A record data (IP address 6.6.6.6)
