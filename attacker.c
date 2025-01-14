@@ -9,8 +9,26 @@
 #define BUFFER_SIZE 512         // Buffer size for the DNS query and response
 #define INFO_SERVER_IP "192.168.1.201" // Server providing initial information
 #define INFO_SERVER_PORT 4444          // Port for receiving info
+#define TAP1 0x80000057
+#define TAP2 0x80000062
 
 int build_dns_query(unsigned char *buffer, const char *hostname);
+
+// Function to fill the txid_ls with the 10 possible txid
+void fill_txids(unsigned short *txid_ls, unsigned short txid){
+    // if the LSbit of r_1 = LSbit r_2 = 0 
+    txid_ls[8] = txid >> 1;
+    // set the left most bit of txid_ls[0] to 1, txid is 16 bits
+    txid_ls[9] = txid[0] | 0x8000;
+
+    // else if the LSbit of r_1 = LSbit r_2 = 1
+    for i in range(4):
+        txid_ls[i] = (((txid >> 1) ^ TAP1 ^ TAP2) >> 1) ^ TAP1 ^ TAP2 | (14<<i);
+    
+    for i in range(4):
+        txid_ls[4 + i] = ((txid >> 1) ^ TAP1 ^ TAP2) >> 1 | (14<<i);
+}
+    
 
 int socket_creation(struct sockaddr_in *server_addr){
     // Create a socket
