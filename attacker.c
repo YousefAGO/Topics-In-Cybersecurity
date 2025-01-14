@@ -95,10 +95,11 @@ void send_spoofed_dns_response(const char *hostname, uint32_t txid, const char *
     // Step 3: Assume we already have the DNS query (this would normally come from the client)
     unsigned char query[BUFFER_SIZE];
     int query_len = build_dns_query(query, hostname);  
-
+    printf("query_len: %d\n", query_len);
     // Step 4: Build the DNS response
     int response_len = build_dns_response(buffer, query, query_len, txid);
-
+    printf("response_len: %d\n", response_len);
+    printf("buffer: %s\n", buffer);
     // Step 5: Send the spoofed DNS response
     if (sendto(sockfd, buffer, response_len, 0, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
         perror("Failed to send spoofed DNS response");
