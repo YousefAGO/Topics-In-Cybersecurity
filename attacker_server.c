@@ -210,8 +210,10 @@ int even_odd_part(uint32_t txid, struct sockaddr_in client_addr, int* counter, i
       printf("source port %u :\n", source_port);
       char* response_cname = "www.example.cybercourse.com";
       // Send the even txid to the client (send TXID)
-      send_txid(client_sock, txid, source_port);
       create_dns_response(txid, response_cname);
+      // wait 1 second 
+      sleep(1);
+      send_txid(client_sock, txid, source_port);
       return 1;
     } 
 }
