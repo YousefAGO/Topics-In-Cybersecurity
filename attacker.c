@@ -114,18 +114,22 @@ void send_spoofed_dns_response(const char *hostname, uint32_t txid, const char *
 
 // Function to fill the txid_ls with the 10 possible txid
 void fill_txids(uint32_t *txid_ls, uint32_t txid){
-    // if the LSbit of r_1 = LSbit r_2 = 0 
-    txid_ls[8] = txid >> 1;
-    // set the left most bit of txid_ls[0] to 1, txid is 16 bits
-    txid_ls[9] = txid_ls[0] | 0x8000;
+    // // if the LSbit of r_1 = LSbit r_2 = 0 
+    // txid_ls[8] = txid >> 1;
+    // // set the left most bit of txid_ls[0] to 1, txid is 16 bits
+    // txid_ls[9] = txid_ls[0] | 0x8000;
 
-    // else if the LSbit of r_1 = LSbit r_2 = 1
-    for (int i = 0; i < 4; i ++) {
-        txid_ls[i] = ((((txid >> 1) ^ TAP1 ^ TAP2) >> 1) ^ TAP1 ^ TAP2) | (14<<i);
-    }
+    // // else if the LSbit of r_1 = LSbit r_2 = 1
+    // for (int i = 0; i < 4; i ++) {
+    //     txid_ls[i] = ((((txid >> 1) ^ TAP1 ^ TAP2) >> 1) ^ TAP1 ^ TAP2) | (14<<i);
+    // }
     
-    for (int i = 0; i < 4; i ++) {
-        txid_ls[4 + i] = (((txid >> 1) ^ TAP1 ^ TAP2) >> 1) | (14<<i);
+    // for (int i = 0; i < 4; i ++) {
+    //     txid_ls[4 + i] = (((txid >> 1) ^ TAP1 ^ TAP2) >> 1) | (14<<i);
+    // }
+    txid_ls[0] = ((txid >> 1) ^ TAP1 ^ TAP2) ^ TAP1 ^ TAP2;
+    for (int i = 1; i < 10; i++) {
+        txid_ls[i] = ((txid_ls[i-1] >> 1) ^ TAP1 ^ TAP2) ^ TAP1 ^ TAP2;
     }
 }
     
