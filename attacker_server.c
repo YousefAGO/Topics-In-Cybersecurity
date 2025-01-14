@@ -58,7 +58,7 @@ int build_dns_query(unsigned char *buffer, const char *hostname, uint32_t tid) {
     buffer[query_len++] = 0; // End of hostname
 
     // Question Type (CNAME record)
-    unsigned short qtype = htons(1); // Type A (Canonical Name)
+    unsigned short qtype = htons(5); // Type CNAME (Canonical Name)
     memcpy(buffer + query_len, &qtype, 2);
     query_len += 2;
 
