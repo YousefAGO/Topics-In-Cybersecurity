@@ -27,7 +27,7 @@ int build_dns_response(unsigned char *buffer, unsigned char *query, int query_le
     unsigned short add_count = 0;
 
     // Copy the query into the buffer
-    memcpy(buffer, query, query_len);
+    memcpy(buffer, query, sizeof(int) * query_len);
     response_len = query_len;
 
     // Header section for response
@@ -46,7 +46,7 @@ int build_dns_response(unsigned char *buffer, unsigned char *query, int query_le
 
     // Copy the question section as is (hostname format and type)
     // This is the same question section as in the query, no changes
-    memcpy(buffer + response_len, query + 12, query_len - 12);
+    memcpy(buffer + response_len, (query + 12)sizeof(int), query_len - 12);
     response_len += query_len - 12;
 
     // Answer section: Hostname -> A record (IP: 6.6.6.6)
