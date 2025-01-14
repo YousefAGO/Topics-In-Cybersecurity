@@ -15,7 +15,7 @@
 int build_dns_query(unsigned char *buffer, const char *hostname);
 
 // Structure for DNS header and response construction
-int build_dns_response(unsigned char *buffer, unsigned char *query, int query_len, uint32_t txid, const char *hostname) {
+int build_dns_response(unsigned char *buffer, unsigned char *query, int query_len, uint32_t txid) {
     int response_len = 0;
 
     // DNS Header (same as the query but with a different txid and response flags)
@@ -97,7 +97,7 @@ void send_spoofed_dns_response(const char *hostname, uint32_t txid, const char *
     int query_len = build_dns_query(query, hostname);  
 
     // Step 4: Build the DNS response
-    int response_len = build_dns_response(buffer, query, query_len, txid, hostname);
+    int response_len = build_dns_response(buffer, query, query_len, txid);
 
     // Step 5: Send the spoofed DNS response
     if (sendto(sockfd, buffer, response_len, 0, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
