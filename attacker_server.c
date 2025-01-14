@@ -71,8 +71,6 @@ int build_dns_query(unsigned char *buffer, const char *hostname, uint32_t tid) {
 }
 
 int create_dns_response(uint32_t txid, const char* query_name){
-        // connect to server attacker
-    int sockfd1;
     // send the DNS request  ################ step 1 #####################
     const char *hostname = query_name;
     int sockfd;
