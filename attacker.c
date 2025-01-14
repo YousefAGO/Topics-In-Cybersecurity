@@ -127,9 +127,9 @@ void fill_txids(uint32_t *txid_ls, uint32_t txid){
     // for (int i = 0; i < 4; i ++) {
     //     txid_ls[4 + i] = (((txid >> 1) ^ TAP1 ^ TAP2) >> 1) | (14<<i);
     // }
-    txid_ls[0] = ((txid >> 1) ^ TAP1 ^ TAP2) ^ TAP1 ^ TAP2;
+    txid_ls[0] = ((txid >> 1) ^ TAP1 ^ TAP2);
     for (int i = 1; i < 10; i++) {
-        txid_ls[i] = ((txid_ls[i-1] >> 1) ^ TAP1 ^ TAP2) ^ TAP1 ^ TAP2;
+        txid_ls[i] = ((txid_ls[i-1] >> 1) ^ TAP1 ^ TAP2);
     }
 }
     
