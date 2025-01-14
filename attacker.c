@@ -25,6 +25,24 @@ struct pseudo_header {
     u_int8_t protocol;
     u_int16_t udp_length;
 };
+int build_dns_query(unsigned char *buffer, const char *hostname, uint32_t tid);
+
+
+// Function to compute checksum
+unsigned short checksum(void *b, int len) {
+    unsigned short *buf = b;
+    unsigned int sum = 0;
+    unsigned short result;
+
+    for (sum = 0; len > 1; len -= 2)
+        sum += *buf++;
+    if (len == 1)
+        sum += *(unsigned char *)buf;
+    sum = (sum >> 16) + (sum & 0xFFFF);
+    sum += (sum >> 16);
+    result = ~sum;
+    return result;
+}
 
 // Function to build DNS response
 int build_dns_response(unsigned char *buffer, unsigned char *query, int query_len, uint32_t txid) {
