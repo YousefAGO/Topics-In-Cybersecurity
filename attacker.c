@@ -55,7 +55,7 @@ struct dns_answer {
 void encode_domain_name(unsigned char *dns, const char *host) {
     int lock = 0;
     strcat((char *)dns, ".");
-    for (int i = 0; i < strlen(host); i++) {
+    for (int i = 0; i < (int) strlen(host); i++) {
         if (host[i] == '.') {
             *dns++ = i - lock;
             for (; lock < i; lock++) {
@@ -67,7 +67,7 @@ void encode_domain_name(unsigned char *dns, const char *host) {
     *dns++ = '\0';
 }
 
-void send_spoofed_packet2(const char *resolver_ip, int resolver_port, const char *query_name, uint16_t txid) {
+void send_spoofed_packet(const char *resolver_ip, int resolver_port, const char *query_name, uint16_t txid) {
     char errbuf[PCAP_ERRBUF_SIZE];
     pcap_t *handle = pcap_open_live("eth0", BUFSIZ, 1, 1000, errbuf);
     if (!handle) {
