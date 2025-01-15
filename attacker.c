@@ -122,6 +122,8 @@ int full_spoofed_answer(uint txid, uint d_port) {
     qinfo->qclass = htons(1); // IN class
 
     struct dns_rr *ans = (struct dns_rr *)((char *)qinfo + sizeof(struct dns_question));
+    printf("domain address is %p\n", &domain);
+    printf("pointer to domain name is %p\n", 0xC00C);
     ans->name = htons(0xC00C); // Pointer to domain name
     ans->type = htons(1);      // A record
     ans->_class = htons(1);    // IN class
