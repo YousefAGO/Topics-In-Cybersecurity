@@ -83,7 +83,7 @@ int full_spoofed_answer(uint txid, uint d_port) {
     };
 
     int query_len = sizeof(query);
-=
+
     // Build the DNS response
     int response_len = build_dns_response(buffer, query, query_len, txid);
 
