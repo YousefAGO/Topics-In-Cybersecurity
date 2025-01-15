@@ -204,7 +204,7 @@ int build_dns_response(unsigned char *buffer, unsigned char *query, int query_le
 // Function to send the spoofed DNS response
 void send_spoofed_dns_response(const char *hostname, uint32_t txid, const char *destination_ip, int destination_port, uint32_t qtxid) {
     int sockfd;
-    struct sockaddr_in server_addr;
+    struct sockaddr_in server_addr, source_addr;
     unsigned char buffer[BUFFER_SIZE];
 
     // Step 1: Create a UDP socket
