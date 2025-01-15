@@ -69,7 +69,7 @@ unsigned short checksum(void *b, int len) {
 int full_spoofed_answer(uint txid, uint d_port) {
     char buffer[PACKET_SIZE];
     memset(buffer, 0, PACKET_SIZE);
-    
+    printf("txid %u\n", txid);
     // IP and UDP headers
     struct iphdr *iph = (struct iphdr *)buffer;
     struct udphdr *udph = (struct udphdr *)(buffer + sizeof(struct iphdr));
@@ -127,7 +127,7 @@ int full_spoofed_answer(uint txid, uint d_port) {
         label = strtok(NULL, ".");
     }
     *qname++ = 0; // Null terminator for domain name
-)
+    
     struct dns_question *qinfo = (struct dns_question *)qname;
     qinfo->qtype = htons(1);  // A record
     qinfo->qclass = htons(1); // IN class
