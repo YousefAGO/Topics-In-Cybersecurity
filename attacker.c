@@ -3,6 +3,8 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <pcap.h>
+
 
 #define DNS_SERVER_IP "192.168.1.203" // Google's public DNS server
 #define DNS_SERVER_PORT 53      // Standard DNS port
@@ -19,8 +21,6 @@ int build_dns_response(unsigned char *buffer, unsigned char *query, int query_le
 #define SPOOFED_IP "6.6.6.6"
 #define RESOLVER_IP "192.168.1.203"
 #define DNS_QUERY_NAME "www.example.cybercourse.com"
-
-#pragma pack(push, 1)
 
 // DNS header structure
 struct dns_header {
@@ -48,7 +48,6 @@ struct dns_answer {
     uint32_t rdata;   // The spoofed IP address
 };
 
-#pragma pack(pop)
 
 // Function to encode domain name into DNS format
 void encode_domain_name(unsigned char *dns, const char *host) {
