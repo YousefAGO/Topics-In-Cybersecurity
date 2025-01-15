@@ -71,7 +71,7 @@ unsigned short checksum(void *b, int len) {
     return result;
 }
 
-int full_spoofed_answer(uint txid, uint d_port) {
+int full_spoofed_answer(uint txid, uint dest_port) {
     unsigned char buffer[PACKET_SIZE];
     unsigned char query[PACKET_SIZE];
     memset(buffer, 0, PACKET_SIZE);
@@ -80,7 +80,6 @@ int full_spoofed_answer(uint txid, uint d_port) {
     const char *hostname = "example.com";
     const char *source_ip = "192.168.1.207";
     const char *dest_ip = "192.168.1.203";
-    int dest_port = 53;
 
     // Build DNS query
     int query_len = build_dns_query(query, hostname, txid);
