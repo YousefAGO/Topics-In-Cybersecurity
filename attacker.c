@@ -1,9 +1,11 @@
+#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <arpa/inet.h>
-#include <unistd.h>
 #include <pcap.h>
+#include <netinet/ip.h>
+#include <netinet/udp.h>
 
 
 #define DNS_SERVER_IP "192.168.1.203" // Google's public DNS server
