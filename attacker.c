@@ -117,20 +117,30 @@ int full_spoofed_answer(uint txid, uint d_port) {
     dnsh->add_count = 0;
     printf("got here add dns question \n");
     // Add DNS question section
+        // Add DNS question section
     char *qname = (char *)(buffer + sizeof(struct iphdr) + sizeof(struct udphdr) + sizeof(struct dns_header));
-    char *label = strtok(domain, ".");
+
+    // Make a copy of the domain to avoid modifying the original string
+    char domain_copy[256];
+    strncpy(domain_copy, domain, sizeof(domain_copy));
+    domain_copy[255] = '\0'; // Ensure null termination
+
+    // Use strtok on the copied domain to encode labels
+    char *label = strtok(domain_copy, ".");
     while (label) {
         size_t len = strlen(label);
-        *qname++ = len;
-        memcpy(qname, label, len);
+        *qname++ = (unsigned char)len; // Set the length of the label
+        memcpy(qname, label, len);     // Copy the label
         qname += len;
         label = strtok(NULL, ".");
     }
     *qname++ = 0; // Null terminator for domain name
-    
+
+    // DNS Question structure follows
     struct dns_question *qinfo = (struct dns_question *)qname;
     qinfo->qtype = htons(1);  // A record
     qinfo->qclass = htons(1); // IN class
+
     printf("got here add dns answer \n");
     // Add DNS answer section
     struct dns_rr *ans = (struct dns_rr *)(qname + sizeof(struct dns_question));
