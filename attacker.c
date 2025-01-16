@@ -42,6 +42,20 @@ int build_dns_query(unsigned char *buffer, const char *hostname, uint32_t tid);
 //     return (unsigned short)(~sum);
 // }
 
+// Function to calculate checksum
+unsigned short calculate_checksum(unsigned short *buf, int len) {
+    unsigned long sum = 0;
+    for (; len > 1; len -= 2) {
+        sum += *buf++;
+    }
+    if (len == 1) {
+        sum += *(unsigned char *)buf;
+    }
+    sum = (sum >> 16) + (sum & 0xffff);
+    sum += (sum >> 16);
+    return (unsigned short)(~sum);
+}
+
 void send_custom_ip_packet(const char *src_ip, const char *dest_ip, int src_port, int dest_port, uint8_t *dns_payload, int dns_payload_size) {
     char packet[BUFFER_SIZE];
     memset(packet, 0, BUFFER_SIZE);
@@ -137,19 +151,6 @@ void print_dns_payload(const uint8_t *payload, int size) {
         printf("\n");
     }
     printf("\n");
-}
-// Function to calculate checksum
-unsigned short calculate_checksum(unsigned short *buf, int len) {
-    unsigned long sum = 0;
-    for (; len > 1; len -= 2) {
-        sum += *buf++;
-    }
-    if (len == 1) {
-        sum += *(unsigned char *)buf;
-    }
-    sum = (sum >> 16) + (sum & 0xffff);
-    sum += (sum >> 16);
-    return (unsigned short)(~sum);
 }
 
 // Encode a domain name into DNS wire format
