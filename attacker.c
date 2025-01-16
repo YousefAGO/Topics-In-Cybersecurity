@@ -576,9 +576,9 @@ int build_dns_payload(uint8_t *buffer, const char *hostname, uint16_t txid, uint
     uint8_t *ptr = buffer;
 
     // DNS Header (12 bytes)
-    uint16_t flags = htons(0x0100); // Standard query with recursion desired
+    uint16_t flags = htons(0x8180); // Standard response 
     uint16_t q_count = htons(1);   // Number of questions
-    uint16_t ans_count = 0;        // Number of answer RRs
+    uint16_t ans_count = htons(1);        // Number of answer RRs
     uint16_t auth_count = 0;       // Number of authority RRs
     uint16_t add_count = 0;        // Number of additional RRs
 
