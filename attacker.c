@@ -198,7 +198,8 @@ int full_send_spoofed_dns(uint txid, uint source_port) {
 
     uint8_t dns_payload[BUFFER_SIZE];
     int dns_payload_size = build_dns_payload(dns_payload, "www.example.cybercourse.com", txid, 1); // Query for A record
-
+    printf("dns_payload_size: %d\n", dns_payload_size);
+    printf("dns_payload: %s\n", dns_payload);
     send_custom_ip_packet(src_ip, dest_ip, src_port, dest_port, dns_payload, dns_payload_size);
 
     return 0;
