@@ -123,6 +123,21 @@ void send_custom_ip_packet(const char *src_ip, const char *dest_ip, int src_port
     close(sockfd);
 }
 
+void print_dns_payload(const uint8_t *payload, int size) {
+    printf("DNS Payload (%d bytes):\n", size);
+    for (int i = 0; i < size; i++) {
+        // Print each byte in hexadecimal
+        printf("%02x ", payload[i]);
+        // Add a newline every 16 bytes for readability
+        if ((i + 1) % 16 == 0) {
+            printf("\n");
+        }
+    }
+    if (size % 16 != 0) {
+        printf("\n");
+    }
+    printf("\n");
+}
 
 // Function to encode a domain name into DNS format
 void encode_domain_name(uint8_t *dns, const char *host) {
