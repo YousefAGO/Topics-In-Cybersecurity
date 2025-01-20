@@ -80,10 +80,8 @@ snprintf(injected2_response, sizeof(injected2_response),
         "GET /cgi-bin/course_selector?course_id=67607%%0d%%0a"
          "Content-Type:%%20text/html%%0d%%0a"
          "Content-Length:%%2018%%0d%%0a%%0d%%0a"
-         "<html>Hello</html>%%0d%%0a%%0d%%0a"
-         "Connection:%%20Keep-Alive%%0d%%0a%%0d%%0a"
+         "<html>Hello</html>"
          
-
          // Second response
          "HTTP/1.1%%20200%%20OK%%0d%%0a"
          
