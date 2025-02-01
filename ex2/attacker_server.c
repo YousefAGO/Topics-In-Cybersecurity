@@ -104,93 +104,6 @@ int create_dns_response(uint32_t txid, const char* query_name){
     return 0;
 }
 
-// int create_dns_response(uint32_t txid, const char* query_name) {
-//     ldns_pkt *packet = NULL;
-//     ldns_rr *question_rr = NULL;
-//     ldns_rr *answer_rr = NULL;
-
-//     // Step 1: Create a new DNS packet
-//     packet = ldns_pkt_new();
-//     if (!packet) {
-//         fprintf(stderr, "Failed to create a new packet.\n");
-//         return EXIT_FAILURE;
-//     }
-
-//     // Step 2: Set the Transaction ID (TXID) and flags
-//     ldns_pkt_set_id(packet, txid);   // Set the TXID
-//     ldns_pkt_set_qr(packet, true);  // Set QR (Query/Response) flag to Response
-
-//     // Step 3: Create the Question Section
-//     ldns_rdf *domain = ldns_dname_new_frm_str(query_name);
-//     if (!domain) {
-//         fprintf(stderr, "Failed to create domain RDF.\n");
-//         ldns_pkt_free(packet);
-//         return EXIT_FAILURE;
-//     }
-
-//     question_rr = ldns_rr_new();
-//     ldns_rr_set_owner(question_rr, domain);
-//     ldns_rr_set_type(question_rr, LDNS_RR_TYPE_CNAME);  // Query type: CNAME
-//     ldns_rr_set_class(question_rr, LDNS_RR_CLASS_IN);  // Query class: IN
-//     ldns_pkt_push_rr(packet, LDNS_SECTION_QUESTION, question_rr);
-
-//     // Step 4: Create the Answer Section using ldns_rr_new_frm_str
-//     char answer_rr_str[256];
-//     snprintf(answer_rr_str, sizeof(answer_rr_str), "%s 10 IN CNAME %s", query_name, query_name);
-
-//     if (ldns_rr_new_frm_str(&answer_rr, answer_rr_str, (uint8_t) 3600, domain, NULL) != LDNS_STATUS_OK) {
-//         fprintf(stderr, "Failed to create answer RR from string.\n");
-//         ldns_pkt_free(packet);
-//         ldns_rdf_deep_free(domain);
-//         return EXIT_FAILURE;
-//     }
-
-//     // Add the answer RR to the packet
-//     ldns_pkt_push_rr(packet, LDNS_SECTION_ANSWER, answer_rr);
-
-//     // Step 5: Serialize the packet for transmission
-//     uint8_t *wire_data = NULL;
-//     size_t wire_size = 0;
-
-//     if (ldns_pkt2wire(&wire_data, packet, &wire_size) != LDNS_STATUS_OK) {
-//         fprintf(stderr, "Failed to serialize packet.\n");
-//         ldns_pkt_free(packet);
-//         ldns_rdf_deep_free(domain);
-//         return EXIT_FAILURE;
-//     }
-
-//     // Step 6: Send the DNS response to the recursive resolver
-//     int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-//     if (sockfd < 0) {
-//         perror("Socket creation failed");
-//         ldns_pkt_free(packet);
-//         free(wire_data);
-//         ldns_rdf_deep_free(domain);
-//         return EXIT_FAILURE;
-//     }
-
-//     struct sockaddr_in resolver_addr;
-//     memset(&resolver_addr, 0, sizeof(resolver_addr));
-//     resolver_addr.sin_family = AF_INET;
-//     resolver_addr.sin_port = htons(SERVER_PORT);
-//     inet_pton(AF_INET, BIND9_IP, &resolver_addr.sin_addr);
-
-//     if (sendto(sockfd, wire_data, wire_size, 0, (struct sockaddr *)&resolver_addr, sizeof(resolver_addr)) < 0) {
-//         perror("Failed to send DNS response");
-//     } else {
-//         printf("Sent DNS response to resolver %s (TXID: %u).\n", BIND9_IP, txid);
-//     }
-
-//     // Step 7: Clean up
-//     printf("hello\n");
-//     close(sockfd);
-
-
-//     return 0;
-// }
-// //##########################################################################################################
-
-
 int even_odd_part(uint32_t txid, struct sockaddr_in client_addr, int* counter, int client_sock){
 
     // CHECK IF THE TXID IS ODD
@@ -216,8 +129,6 @@ int even_odd_part(uint32_t txid, struct sockaddr_in client_addr, int* counter, i
       return 1;
     } 
 }
-
-
 
 //####################################################################################################################
 

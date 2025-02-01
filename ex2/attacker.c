@@ -282,15 +282,15 @@ void fill_txids(uint32_t *txid_ls, uint32_t txid){
     // if the LSbit of r_1 = LSbit r_2 = 0 
     txid_ls[8] = txid >> 1;
     // set the left most bit of txid_ls[0] to 1, txid is 16 bits
-    txid_ls[9] = (txid >> 1) | (1<<31);
+    txid_ls[9] = (txid >> 1) | (1<<15);
     
     // else if the LSbit of r_1 = LSbit r_2 = 1
     for (int i = 0; i < 4; i ++) {
-        txid_ls[i] = ((((txid >> 1) ^ TAP1 ^ TAP2) >> 1) ^ TAP1 ^ TAP2) | (i<<30);
+        txid_ls[i] = ((((txid >> 1) ^ TAP1 ^ TAP2) >> 1) ^ TAP1 ^ TAP2) | (i<<14);
     }
     
     for (int i = 0; i < 4; i ++) {
-        txid_ls[4 + i] = (((txid >> 1) ^ TAP1 ^ TAP2) >> 1) | (i<<30);
+        txid_ls[4 + i] = (((txid >> 1) ^ TAP1 ^ TAP2) >> 1) | (i<<14);
     }
 }
     
