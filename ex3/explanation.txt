@@ -1,0 +1,54 @@
+﻿Explanation of out implementation to the HTTP Response Splitting Attack:
+
+
+
+How the Attack Works
+
+1. Vulnerability:
+  	The server or proxy does not properly sanitize user input (e.g., `course_id`).
+   	The attacker injects **CRLF sequences** (`\r\n`) into the HTTP response headers, which the server 	interprets as the start of a new response.
+
+2. Injected Payload:
+   	The attacker's payload includes a second HTTP response, crafted to look like a legitimate server response.
+
+3. Result:
+   	The first response is legitimate, while the second response is the attacker’s malicious content.
+   	If successful, this can lead to cache poisoning or delivering malicious content to users.
+
+
+Steps in the Code
+
+1. Crafting the Attack Request
+	The `snprintf` function creates the attack payload, including:
+	Initial Request:
+	  ```http
+	  POST /cgi-bin/course_selector HTTP/1.1
+	  Host: 192.168.1.202
+          Content-Type: application/x-www-form-urlencoded
+	  Content-Length: 267
+	  Connection: keep-alive
+
+
+- Injected Headers and Responses:
+ 	 The `course_id` parameter includes a CRLF sequence to terminate the first response and start a second:
+
+    	 course_id=67607\r\n
+    	 Content-Length: 0\r\n
+    	 Connection: keep-alive\r\n\r\n
+
+  - The second response is injected - where the current date is updated Date and Time using suitable computational function
+
+        HTTP/1.1 200 OK
+        Date: <current date>
+        Last-Modified: Thu, 02 Jan 2025 19:07:00 GMT
+        Content-Type: text/html
+        Content-Length: 22
+        Connection: close
+
+        <HTML>212973481</HTML>
+
+
+
+http smuggling attack : 
+we exploited the vulnerability of apache2 where  the web server consider the content length for the body content and the proxy consider the chunks as the body content of a request, we sent a post request with length 0 then smuggled the poison request after inside a chunk then eventually requested the page we wanted to poison this way the web server saw the first post and the smuggled request as two different requests answering them one by one and the proxy saw the first and the smuggled request as one request and the page to poison as the second request so the page to poison got poisoned with the second smuggled poison request that was inside the chunk.this way we poisoned the proxy cache for the page to poison request with the poison answer 
+
